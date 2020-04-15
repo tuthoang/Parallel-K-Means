@@ -1,0 +1,8 @@
+Needs:
+
+1. Convergence Feature
+2. OpenAcc dsitance point calculation parallelization
+3. Time stamps
+4. Copy of old to new centroids / Distant calculation in order to not move other centroids.
+
+

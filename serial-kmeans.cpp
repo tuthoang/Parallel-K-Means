@@ -153,9 +153,11 @@ int *getLabels(double **x, double **centroids,
   double closest_dist;
   // Loop through each sample
   // Loop through cluster for the sample and find closest centroid
+  #pragma acc parallel
   for (int i = 0; i < num_samples; i++)
   {
     closest_dist = INT_MAX;
+    #pragma acc parallel
     for (int c = 0; c < k; c++)
     {
 
@@ -189,16 +191,20 @@ void **getCentroids(double **x, double **centroids, int *clusters,
   // double **new_centroids = new double*[k];
 
   // counts holds the number of data points currently in the cluster
+
+  #pragma acc parallel
   int *counts = new int[k];
   for (int c = 0; c < k; c++)
   {
     // new_centroids[c] = new double[num_features];
     counts[c] = 0.0;
+    #pragma acc parallel loop
     for (int i = 0; i < num_samples; i++)
     {
       if (clusters[i] == c)
       {
         counts[c]++;
+        #pragma acc parallel loop reduction
         for (int j = 0; j < num_features; j++)
         {
           centroids[c][j] += x[i][j];
@@ -208,6 +214,7 @@ void **getCentroids(double **x, double **centroids, int *clusters,
 
     // Divide by number of data points in cluster
     // This is the new centroid (average)
+    #pragma acc parallel
     for (int j = 0; j < num_features; j++)
     {
       if (counts[c] == 0)
