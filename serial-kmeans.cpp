@@ -7,10 +7,12 @@
 #include <fstream>
 #include <sstream>
 #include <vector>
+#include <iostream>
+using namespace std;
 
-double **kmeans(double **x, double **initial_centroids, int num_samples, int num_features, int k);
-int *getLabels(double **x, double **centroids, int num_samples, int num_features, int k);
-void **getCentroids(double **x, double **centroids, int *clusters, int num_samples, int num_features, int k);
+double** kmeans(double **x, double **initial_centroids, int num_samples, int num_features, int k);
+int* getLabels(double **x, double **centroids, int num_samples, int num_features, int k);
+void getCentroids(double **x, double **centroids, int *clusters, int num_samples, int num_features, int k);
 void writeCentroidsToFile(double **final_centroid, int k, int num_features);
 void writeLabelsToFile(double **x, int *labels, int num_samples, int num_features);
 
@@ -53,7 +55,10 @@ int main()
         result.push_back(s);
       for (int i = 0; i < result.size(); i++)
       {
-        x[linenum][i] = std::stod(result[i]);
+        stringstream num(result[i]);
+        double x_temp = 0;
+        num >> x_temp;
+        x[linenum][i] = x_temp;
       }
       linenum++;
     }
@@ -153,11 +158,11 @@ int *getLabels(double **x, double **centroids,
   double closest_dist;
   // Loop through each sample
   // Loop through cluster for the sample and find closest centroid
-  #pragma acc parallel
+  #pragma acc parallel loop
   for (int i = 0; i < num_samples; i++)
   {
     closest_dist = INT_MAX;
-    #pragma acc parallel
+   
     for (int c = 0; c < k; c++)
     {
 
@@ -185,14 +190,14 @@ int *getLabels(double **x, double **centroids,
  * Updates the centroids by calculating
  * the mean of the data points belonging to that cluster
  */
-void **getCentroids(double **x, double **centroids, int *clusters,
+void getCentroids(double **x, double **centroids, int *clusters,
                     int num_samples, int num_features, int k)
 {
   // double **new_centroids = new double*[k];
 
   // counts holds the number of data points currently in the cluster
 
-  #pragma acc parallel
+  #pragma acc parallel loop reduction(+:centroids)
   int *counts = new int[k];
   for (int c = 0; c < k; c++)
   {
@@ -204,7 +209,7 @@ void **getCentroids(double **x, double **centroids, int *clusters,
       if (clusters[i] == c)
       {
         counts[c]++;
-        #pragma acc parallel loop reduction
+        #pragma acc parallel loop
         for (int j = 0; j < num_features; j++)
         {
           centroids[c][j] += x[i][j];
@@ -214,7 +219,7 @@ void **getCentroids(double **x, double **centroids, int *clusters,
 
     // Divide by number of data points in cluster
     // This is the new centroid (average)
-    #pragma acc parallel
+    #pragma acc parallel loop
     for (int j = 0; j < num_features; j++)
     {
       if (counts[c] == 0)
@@ -295,4 +300,5 @@ void writeLabelsToFile(double **x, int *labels, int num_samples, int num_feature
     outfile << labels[i] << "\n";
   }
   outfile.close();
+
 }
