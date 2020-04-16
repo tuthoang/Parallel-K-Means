@@ -162,7 +162,6 @@ int *getLabels(double **x, double **centroids,
   // Loop through each sample
   // Loop through cluster for the sample and find closest centroid
    double** clusters_new = new double*[num_samples];
-
   for (int i = 0; i < num_samples; i++)
   {
     closest_dist = INT_MAX;
@@ -183,7 +182,7 @@ int *getLabels(double **x, double **centroids,
       // Assign closest centroid to data point
       clusters_new[i][c] = l2_dist;
     }
-    cout<<"This is one of the clusters calculation " << clusters_new[i][0]<<endl;
+    //cout<<"This is one of the clusters calculation " << clusters_new[i][0]<<endl;
     closest_dist = clusters_new[i][0];
     for(int c = 1; c< k; c++){
       if(closest_dist > clusters_new[i][c]){
@@ -191,8 +190,9 @@ int *getLabels(double **x, double **centroids,
         clusters[i] = c;
       }
     }
+    //cout<<"went through a loop fine"<<endl;
   }
- 
+  //cout<< "got here "<<endl;
   return clusters;
 }
 
@@ -208,6 +208,7 @@ void getCentroids(double **x, double **centroids, int *clusters,
 
   // counts holds the number of data points currently in the cluster
   int *counts = new int[k];
+  cout<<"got to getCentroids"<<endl;
   for (int c = 0; c < k; c++)
   {
     // new_centroids[c] = new double[num_features];

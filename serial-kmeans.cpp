@@ -7,11 +7,10 @@
 #include <fstream>
 #include <sstream>
 #include <vector>
-#include <iostream>
-using namespace std;
+#include <time.h>
 
-double** kmeans(double **x, double **initial_centroids, int num_samples, int num_features, int k);
-int* getLabels(double **x, double **centroids, int num_samples, int num_features, int k);
+double **kmeans(double **x, double **initial_centroids, int num_samples, int num_features, int k);
+int *getLabels(double **x, double **centroids, int num_samples, int num_features, int k);
 void getCentroids(double **x, double **centroids, int *clusters, int num_samples, int num_features, int k);
 void writeCentroidsToFile(double **final_centroid, int k, int num_features);
 void writeLabelsToFile(double **x, int *labels, int num_samples, int num_features);
@@ -28,6 +27,7 @@ enum Color { red,
 
 int main()
 {
+  clock_t tStart = clock();
   srand(50); // seed 1
   setlocale(LC_ALL, "en_US.UTF-8");
   // Synthetic data
@@ -55,10 +55,7 @@ int main()
         result.push_back(s);
       for (int i = 0; i < result.size(); i++)
       {
-        stringstream num(result[i]);
-        double x_temp = 0;
-        num >> x_temp;
-        x[linenum][i] = x_temp;
+        x[linenum][i] = std::stod(result[i]);
       }
       linenum++;
     }
@@ -96,7 +93,7 @@ int main()
                                 rand() % (int)maxes[j];
     }
   }
-
+  
   printf("Initial Centroids\n");
   for (int i = 0; i < k; i++)
   {
@@ -108,6 +105,9 @@ int main()
     printf(")\n");
   }
   double **final_centroid = kmeans(x, initial_centroids, num_samples, num_features, k);
+  double t1 = (double)(clock() - tStart)/CLOCKS_PER_SEC;
+  printf("Time taken for clustering serially : %.2fs\n", (double)(clock() - tStart)/CLOCKS_PER_SEC);  
+
 
   writeCentroidsToFile(final_centroid, k, num_features);
   int* labels = getLabels(x, final_centroid, num_samples, num_features, k);
@@ -158,11 +158,9 @@ int *getLabels(double **x, double **centroids,
   double closest_dist;
   // Loop through each sample
   // Loop through cluster for the sample and find closest centroid
-  #pragma acc parallel loop
   for (int i = 0; i < num_samples; i++)
   {
     closest_dist = INT_MAX;
-   
     for (int c = 0; c < k; c++)
     {
 
@@ -196,20 +194,16 @@ void getCentroids(double **x, double **centroids, int *clusters,
   // double **new_centroids = new double*[k];
 
   // counts holds the number of data points currently in the cluster
-
-  #pragma acc parallel loop reduction(+:centroids)
   int *counts = new int[k];
   for (int c = 0; c < k; c++)
   {
     // new_centroids[c] = new double[num_features];
     counts[c] = 0.0;
-    #pragma acc parallel loop
     for (int i = 0; i < num_samples; i++)
     {
       if (clusters[i] == c)
       {
         counts[c]++;
-        #pragma acc parallel loop
         for (int j = 0; j < num_features; j++)
         {
           centroids[c][j] += x[i][j];
@@ -219,7 +213,6 @@ void getCentroids(double **x, double **centroids, int *clusters,
 
     // Divide by number of data points in cluster
     // This is the new centroid (average)
-    #pragma acc parallel loop
     for (int j = 0; j < num_features; j++)
     {
       if (counts[c] == 0)
@@ -300,5 +293,4 @@ void writeLabelsToFile(double **x, int *labels, int num_samples, int num_feature
     outfile << labels[i] << "\n";
   }
   outfile.close();
-
 }
