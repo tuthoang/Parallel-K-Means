@@ -7,15 +7,13 @@
 #include <fstream>
 #include <sstream>
 #include <vector>
+#include <time.h>
 #include <iostream>
 using namespace std;
 
-#define threshold 0.1
-
-
-double** kmeans(double **x, double **initial_centroids, int num_samples, int num_features, int k);
-int* getLabels(double **x, double **centroids, int num_samples, int num_features, int k);
-double** getCentroids(double **x, double **centroids, int *clusters, int num_samples, int num_features, int k);
+double **kmeans(double **x, double **initial_centroids, int num_samples, int num_features, int k);
+int *getLabels(double **x, double **centroids, int num_samples, int num_features, int k);
+void getCentroids(double **x, double **centroids, int *clusters, int num_samples, int num_features, int k);
 void writeCentroidsToFile(double **final_centroid, int k, int num_features);
 void writeLabelsToFile(double **x, int *labels, int num_samples, int num_features);
 
@@ -59,10 +57,7 @@ int main()
         result.push_back(s);
       for (int i = 0; i < result.size(); i++)
       {
-        stringstream num(result[i]);
-        double x_temp = 0;
-        num >> x_temp;
-        x[linenum][i] = x_temp;
+        x[linenum][i] = std::stod(result[i]);
       }
       linenum++;
     }
@@ -89,7 +84,7 @@ int main()
         maxes[j] = x[i][j];
     }
   }
-  
+
   double **initial_centroids = new double *[k];
   for (int i = 0; i < k; i++)
   {
@@ -112,10 +107,11 @@ int main()
     printf(")\n");
   }
   double **final_centroid = kmeans(x, initial_centroids, num_samples, num_features, k);
+  double t1 = (double)(clock() - tStart)/CLOCKS_PER_SEC;
+  printf("Time taken for clustering serially : %.2fs\n", (double)(clock() - tStart)/CLOCKS_PER_SEC);  
+
 
   writeCentroidsToFile(final_centroid, k, num_features);
-
-  printf("Time taken for clustering parallel : %.2fs\n", (double)(clock() - tStart)/CLOCKS_PER_SEC);  
   int* labels = getLabels(x, final_centroid, num_samples, num_features, k);
   writeLabelsToFile(x, labels, num_samples, num_features);
   system("gnuplot -p plotCluster");
@@ -125,7 +121,7 @@ double **kmeans(double **x, double **centroids,
                 int num_samples, int num_features, int k)
 {
 
-  double** new_centroids = new double*[k];
+  double **old_centroids = centroids;
   int *clusters;
 
   int count = 0;
@@ -145,12 +141,7 @@ double **kmeans(double **x, double **centroids,
     //   printf(")\n");
     // }
     clusters = getLabels(x, centroids, num_samples, num_features, k);
-    new_centroids = getCentroids(x, centroids, clusters, num_samples, num_features, k);
-    for(int i = 0; i < k; i++){
-        for(int j = 0; j < num_features; j++){
-            centroids[i][j] = new_centroids[i][j];
-        }
-    }
+    getCentroids(x, centroids, clusters, num_samples, num_features, k);
     count++;
     cout<<count<<endl;
   }
@@ -170,78 +161,55 @@ int *getLabels(double **x, double **centroids,
   double closest_dist;
   // Loop through each sample
   // Loop through cluster for the sample and find closest centroid
-   double** clusters_new = new double*[num_samples];
-  #pragma acc loop
   for (int i = 0; i < num_samples; i++)
   {
     closest_dist = INT_MAX;
-    clusters_new[i] = new double[num_samples];
     for (int c = 0; c < k; c++)
     {
+
       // Calculate l2 distance from each cluster
       l2_dist = 0.0;
-      //This is a data independet loop so I should be able to do a parallelization
-      #pragma acc parallel loop reduction(+:l2_dist)
       for (int j = 0; j < num_features; j++)
       {
         l2_dist += pow(x[i][j] - centroids[c][j], 2);
       }
       l2_dist = sqrt(l2_dist);
+
       // Assign closest centroid to data point
-      clusters_new[i][c] = l2_dist;
-    }
-    //cout<<"This is one of the clusters calculation " << clusters_new[i][0]<<endl;
-    closest_dist = clusters_new[i][0];
-    for(int c = 1; c< k; c++){
-      if(closest_dist > clusters_new[i][c]){
-        closest_dist = clusters_new[i][c];
+      if (l2_dist < closest_dist)
+      {
+        closest_dist = l2_dist;
         clusters[i] = c;
       }
     }
-    //cout<<"went through a loop fine"<<endl;
   }
-  //cout<< "got here "<<endl;
+
   return clusters;
 }
-
 
 /**
  * Updates the centroids by calculating
  * the mean of the data points belonging to that cluster
- * 
- * Idea now is to somehow stop updating some clusters if their mean hasn't shifted too much, therefore we need a way to store and compare the old centroids 
- * with new ones and then somehow update the dataset. 
  */
-double** getCentroids(double **x, double **centroids, int *clusters,
+void getCentroids(double **x, double **centroids, int *clusters,
                     int num_samples, int num_features, int k)
 {
-   //Initializing everything to 0
-  double **new_centroids = new double*[k];
-
-  for(int i = 0; i < k; i++){
-      new_centroids[i] = new double[num_features];
-      for(int j = 0; j < num_features; j++){
-          new_centroids[i][j] = 0;
-          //cout<<centroids[i][j]<<endl;
-      }
-  }
+  // double **new_centroids = new double*[k];
 
   // counts holds the number of data points currently in the cluster
   int *counts = new int[k];
-  #pragma kernel
   for (int c = 0; c < k; c++)
   {
     // new_centroids[c] = new double[num_features];
     counts[c] = 0.0;
-
     for (int i = 0; i < num_samples; i++)
     {
       if (clusters[i] == c)
       {
-        counts[c] += 1;
+        counts[c]++;
         for (int j = 0; j < num_features; j++)
         {
-          new_centroids[c][j] += x[i][j];
+          centroids[c][j] += x[i][j];
         }
       }
     }
@@ -251,15 +219,12 @@ double** getCentroids(double **x, double **centroids, int *clusters,
     for (int j = 0; j < num_features; j++)
     {
       if (counts[c] == 0)
-        new_centroids[c][j] = rand() % 500000; // If no data points in group, then reinitialize
+        centroids[c][j] = rand() % 500000; // If no data points in group, then reinitialize
       else
-        new_centroids[c][j] = new_centroids[c][j] / counts[c];
+        centroids[c][j] = centroids[c][j] / counts[c];
     }
   }
-
-  return new_centroids;
 }
-
 
 
 std::string getColor(int val){
@@ -331,5 +296,4 @@ void writeLabelsToFile(double **x, int *labels, int num_samples, int num_feature
     outfile << labels[i] << "\n";
   }
   outfile.close();
-
 }
