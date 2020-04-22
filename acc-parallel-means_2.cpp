@@ -17,10 +17,8 @@ using namespace std;
 // #pragma acc routine(sqrt) seq
 
 double** kmeans(double **x, double **initial_centroids, int num_samples, int num_features, int k);
-int* getLabels(double **x, double **centroids, int num_samples, int num_features, int k);
-double** getCentroids(double **x, double **centroids, int *clusters, int num_samples, int num_features, int k);
 void writeCentroidsToFile(double **final_centroid, int k, int num_features);
-void writeLabelsToFile(double **x, int *labels, int num_samples, int num_features);
+void writeLabelsToFile(double **x, double *labels, int num_samples, int num_features);
 
 enum Color { red,
               green,
@@ -35,7 +33,7 @@ enum Color { red,
 int main()
 {
   clock_t tStart = clock();
-  srand(50); // seed 1
+  srand(2); // seed 1
   setlocale(LC_ALL, "en_US.UTF-8");
   // Synthetic data
   int k = 8;              // Number of clusters
@@ -106,9 +104,14 @@ int main()
     initial_centroids[i] = new double[num_features];
     for (int j = 0; j < num_features; j++)
     {
-      // initial_centroids[i][j] = mins[j] +
-      //                           rand() % (int)maxes[j];
-      initial_centroids[i][j] = rand();    
+      if(j < 2){
+        initial_centroids[i][j] = (mins[j] +
+                                        rand()) % (int)maxes[j];
+      }
+      else{
+        initial_centroids[i][j] = 0;
+      }
+       
       }
   }
   
@@ -137,7 +140,7 @@ int main()
   {
     distances[i] = new double[k];
     for (int j = 0; j < k; j++)
-      distances[i][j] = 0.0;
+      distances[i][j] = INT_MAX;
   }
   double *clusters = new double[num_samples];
   for(int i = 0; i < num_samples; i++){
@@ -191,7 +194,7 @@ int main()
       {
         //Calculate l2 distance from each cluster
         //This is a data independet loop so I should be able to do a parallelization
-        for (int j = 0; j < num_features; j++)
+        for (int j = 0; j < 2; j++)
         {
           distances[i][c] += (x[i][j] - centroids[c][j]) * (x[i][j] - centroids[c][j]);
         }
@@ -252,74 +255,15 @@ int main()
       }
       rand_counter = (rand_counter * 7 + 31) % num_samples;
     }
-
+    writeLabelsToFile(x, clusters, num_samples, num_features);
     cout << thresh << endl;
   }
   
   writeCentroidsToFile(centroids, k, num_features);
-
   printf("Time taken for clustering parallel : %.2fs\n", (double)(clock() - tStart)/CLOCKS_PER_SEC);
-  int *labels = getLabels(x, centroids, num_samples, num_features, k);
-  writeLabelsToFile(x, labels, num_samples, num_features);
+  writeLabelsToFile(x, clusters, num_samples, num_features);
   system("gnuplot -p plotCluster");
 }
-
-/**
- * Assigns clusters on the given data by
- * calculating the closest distance to current centroids
- */
-int *getLabels(double **x, double **centroids,
-                  int num_samples, int num_features, int k)
-{
-  int *clusters = new int[num_samples];
-  double l2_dist;
-  double closest_dist;
-  // Loop through each sample
-  // Loop through cluster for the sample and find closest centroid
-  double** distances = new double*[num_samples];
-
-  // #pragma acc parallel
-  for (int i = 0; i < num_samples; i++)
-  {
-    distances[i] = new double[k];
-    for (int j = 0; j < k; j++)
-      distances[i][j] = 0.0;
-  }
-  // #pragma acc data copyin(centroids[0:k][0:num_features]), create(distances[0:num_samples][0:k])
-  for (int i = 0; i < num_samples; i++)
-  {
-    closest_dist = INT_MAX;
-    for (int c = 0; c < k; c++)
-    {
-      // Calculate l2 distance from each cluster
-      // l2_dist = 0.0;
-      //This is a data independet loop so I should be able to do a parallelization
-      // #pragma acc parallel loop reduction(+:l2_dist)
-      for (int j = 0; j < num_features; j++)
-      {
-        l2_dist += (x[i][j] - centroids[c][j]) * (x[i][j] - centroids[c][j]);
-      }
-      distances[i][c] = sqrt(l2_dist);
-      // Assign closest centroid to data point
-      // distances[i][c] = l2_dist;
-    }
-    //cout<<"This is one of the clusters calculation " << distances[i][0]<<endl;
-    closest_dist = distances[i][0];
-    // #pragma acc kernels
-    for (int c = 1; c < k; c++)
-    {
-      if (distances[i][c] < closest_dist)
-      {
-        closest_dist = distances[i][c];
-        clusters[i] = c;
-      }
-    }
-    //cout<<"went through a loop fine"<<endl;
-  }
-    //cout<< "got here "<<endl;
-    return clusters;
-}
-
 
 std::string getColor(int val){
   std::string color;
@@ -375,7 +319,7 @@ void writeCentroidsToFile(double **final_centroid, int k, int num_features)
   outfile.close();
 }
 
-void writeLabelsToFile(double **x, int *labels, int num_samples, int num_features)
+void writeLabelsToFile(double **x, double *labels, int num_samples, int num_features)
 {
   std::string color;
   std::ofstream outfile;
