@@ -39,7 +39,7 @@ int main()
   setlocale(LC_ALL, "en_US.UTF-8");
   // Synthetic data
   int k = 8;              // Number of clusters
-  int num_features = 10;   // x1, x2
+  int num_features = 2;   // x1, x2
   int num_samples = 6500; // total number of data points
   double **x = new double *[num_samples];
 
@@ -72,11 +72,11 @@ int main()
   }
   myfile.close();
 
-  for (int i = 0; i < num_samples; i++)
-    for (int j = 2; j < num_features; j++)
-    {
-      x[i][j] = 1.0;
-    }
+  // for (int i = 0; i < num_samples; i++)
+  //   for (int j = 2; j < num_features; j++)
+  //   {
+  //     x[i][j] = 1.0;
+  //   }
   // Do some preprocessing
   // Initialize clusters randomly, but only within the min-max range
   double mins[num_features];
@@ -147,7 +147,7 @@ int main()
   int rand_counter = 0;
 
 
-  #pragma acc data create(clusters[0:num_samples]) copy(centroids [0:k] [0:num_features]) copyin(x[0:num_samples][0:num_features])
+  #pragma acc data create(clusters[0:num_samples]) copy(centroids [0:k] [0:num_features]) copyin(x[0:num_samples][0:num_features]) copyin(random[0:num_samples][0:num_features])
   for (count =0; count < 10000; count++)
   {
     #pragma acc loop independent
