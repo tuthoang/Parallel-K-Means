@@ -12,9 +12,10 @@ do for[i=1:k]{
 }
 set style data points
 
-plot 'data_colors.txt' using 1:2:3 linecolor variable pt 7 ps 1 t ''
-replot for [i=0:k] 'centroids.txt' every ::i::i using 1:2:3 linecolor variable pt 7 ps 1 t 'Cluster '.i,\
-        for [i=0:k] 'centroids.txt' every ::i::i using 1:2 pt 8 ps 2 lc rgb "black" lw 1 t ''
+set title Title
+plot data_labels using 1:2:3 linecolor variable pt 7 ps 1 t ''
+replot for [i=0:k] centroids_file every ::i::i using 1:2:3 linecolor variable pt 7 ps 1 t 'Cluster '.i,\
+        for [i=0:k] centroids_file every ::i::i using 1:2 pt 8 ps 2 lc rgb "black" lw 1 t ''
 
 # Plot centroids, then plot border to make it pop out more
 set term png
