@@ -11,9 +11,9 @@
 #include <iostream>
 using namespace std;
 
-double **kmeans(double **x, double **initial_centroids, int num_samples, int num_features, int k);
+double **kmeans(double **x, double **initial_centroids, int num_samples, int num_features, int k, double *mins, double *maxes);
 int *getLabels(double **x, double **centroids, int num_samples, int num_features, int k);
-double **getCentroids(double **x, double **centroids, int *clusters, int num_samples, int num_features, int k);
+double **getCentroids(double **x, double **centroids, int *clusters, int num_samples, int num_features, int k, double *mins, double *maxes);
 void writeCentroidsToFile(double **final_centroid, int k, int num_features);
 void writeLabelsToFile(double **x, int *labels, int num_samples, int num_features);
 
@@ -32,12 +32,13 @@ enum Color
 int main()
 {
   clock_t tStart = clock();
-  srand(2); // seed 1
+  // srand(2); // seed 1
+  srand(time(NULL));
   setlocale(LC_ALL, "en_US.UTF-8");
   // Synthetic data
-  int k = 8;              // Number of clusters
+  int k = 50;              // Number of clusters
   int num_features = 2;   // x1, x2
-  int num_samples = 6500; // total number of data points
+  int num_samples = 7500; // total number of data points
   double **x = new double *[num_samples];
 
   for (int i = 0; i < num_samples; i++)
@@ -45,8 +46,9 @@ int main()
     x[i] = new double[num_features];
   }
 
+  string filename = "a3.txt";
   std::string line;
-  std::ifstream myfile("synthetic_dataset.txt");
+  std::ifstream myfile(filename);
   std::string delimiter = " ";
   int linenum = 0;
   if (myfile.is_open())
@@ -66,39 +68,232 @@ int main()
   }
   myfile.close();
 
-  // Do some preprocessing
-  // Initialize clusters randomly, but only within the min-max range
+  double **centroids = new double*[k];
+  double **min_centroids = new double*[k];
+  double **initial_centroids = new double*[k];
+  int *clusters = new int[k];
+  double **distances = new double *[num_samples];
+  double **old_centroids = new double *[k];
   double *mins = new double[num_features];
-  mins[0] = x[0][0];
-  mins[1] = x[0][1];
   double *maxes = new double[num_features];
-  maxes[0] = x[0][0];
-  maxes[1] = x[0][1];
+  int *counts = new int[k];
 
-  // Find min/max of each feature
-  for (int i = 0; i < num_samples; i++)
+  for (int loop = 0; loop < 100; loop++)
   {
-    for (int j = 0; j < num_features; j++)
+    // Do some preprocessing
+    // Initialize clusters randomly, but only within the min-max range
+    mins = new double[num_features];
+    mins[0] = x[0][0];
+    mins[1] = x[0][1];
+    maxes = new double[num_features];
+    maxes[0] = x[0][0];
+    maxes[1] = x[0][1];
+
+    // Find min/max of each feature
+    for (int i = 0; i < num_samples; i++)
     {
-      if (x[i][j] < mins[j])
-        mins[j] = x[i][j];
-      if (x[i][j] > maxes[j])
-        maxes[j] = x[i][j];
+      for (int j = 0; j < num_features; j++)
+      {
+        if (x[i][j] < mins[j])
+          mins[j] = x[i][j];
+        if (x[i][j] > maxes[j])
+          maxes[j] = x[i][j];
+      }
     }
+    cout<< maxes[0] << "\t" << maxes[1] << endl;
+
+    // initial_centroids = new double *[k];
+    // centroids = new double *[k];
+    // min_centroids = new double *[k];
+    
+    for (int i = 0; i < k; i++)
+    {
+      initial_centroids[i] = new double[num_features];
+      centroids[i] = new double[num_features];
+      min_centroids[i] = new double[num_features];
+      for (int j = 0; j < num_features; j++)
+      {
+        initial_centroids[i][j] = mins[j] +
+                                  rand() % (int)maxes[j];
+        centroids[i][j] = initial_centroids[i][j];
+        min_centroids[i][j] = initial_centroids[i][j];
+      }
+    }
+    // centroids = initial_centroids;
+      printf("Initial Centroids\n");
+      for (int i = 0; i < k; i++)
+      {
+        printf("Centroid %d: (", i);
+        for (int j = 0; j < num_features; j++)
+        {
+          printf("%f ", initial_centroids[i][j]);
+
+        }
+        printf(")\n");
+      }
+
+      distances = new double *[num_samples];
+      for (int i = 0; i < num_samples; i++)
+      {
+        distances[i] = new double[k];
+        for (int j = 0; j < k; j++)
+          distances[i][j] = 0.0;
+      }
+
+      clusters = new int[num_samples];
+      for (int i = 0; i < num_samples; i++)
+      {
+        clusters[i] = -1;
+      }
+
+      old_centroids = new double *[k];
+
+      for (int i = 0; i < k; i++)
+      {
+        old_centroids[i] = new double[num_features];
+        for (int j = 0; j < num_features; j++)
+        {
+          old_centroids[i][j] = centroids[i][j];
+        }
+      }
+      // double **final_centroid = kmeans(x, initial_centroids, num_samples, num_features, k, mins, maxes);
+
+      double thresh = 0.05;
+
+      int thresh_met_counter = 0;
+      bool thresh_met_max = false;
+
+      int min_WCSS = INT_MAX;
+
+      int count = 0;
+      
+      while (thresh_met_counter < (k * num_features) && count < 1000)
+      // while(count<1000)
+      {
+          thresh_met_counter = 0;
+
+          //Loop through each sample
+          //Loop through cluster for the sample and find closest centroid
+          double closest_dist;
+          for (int i = 0; i < num_samples; i++)
+          {
+            closest_dist = INT_MAX;
+            //#pragma acc loop independent
+            for (int c = 0; c < k; c++)
+            {
+              //Calculate l2 distance from each cluster
+              //This is a data independet loop so I should be able to do a parallelization
+              for (int j = 0; j < num_features; j++)
+              {
+                distances[i][c] += ((x[i][j] - centroids[c][j]) * (x[i][j] - centroids[c][j]));
+              }
+              distances[i][c] = sqrt(distances[i][c]);
+              // cout << distances[i][c] <<endl;
+              // closest_dist = distances[i][0];
+              if (distances[i][c] < closest_dist)
+              {
+                // cout<< c << endl;
+                closest_dist = distances[i][c];
+                clusters[i] = c;
+              }
+            }
+          }
+
+
+          // counts holds the number of data points currently in the cluster
+          counts = new int[k];
+          for (int c = 0; c < k; c++)
+          {
+            counts[c] = 0;
+            for (int i = 0; i < num_samples; i++)
+            {
+              if (clusters[i] == c)
+              {
+                counts[c] += 1;
+                for (int j = 0; j < num_features; j++)
+                {
+                  centroids[c][j] += x[i][j];
+                }
+              }
+            }
+          }
+
+          for (int c = 0; c < k; c++)
+          {
+            // Divide by number of data points in cluster
+            // This is the new centroid (average)
+            for (int j = 0; j < num_features; j++)
+            {
+              if (counts[c] == 0)
+              {
+                // cout<< c << "  Has no data points.  " << mins[j] << " \t" << maxes[j]<<endl;
+                centroids[c][j] = mins[j] + rand() % (int)maxes[j]; // If no data points in group, then reinitialize
+              }
+              else
+                centroids[c][j] = centroids[c][j] / counts[c];
+            }
+          }
+
+          for (int i = 0; i < k; i++)
+          {
+            for (int j = 0; j < num_features; j++)
+            {
+              // cout << abs(centroids[i][j] - old_centroids[i][j]) <<endl;
+              if (abs(centroids[i][j] - old_centroids[i][j]) / abs(centroids[i][j]) < thresh)
+              {
+                thresh_met_counter++;
+              }
+            }
+          }
+
+          for (int i = 0; i < k; i++)
+          {
+            for (int j = 0; j < num_features; j++)
+            {
+              old_centroids[i][j] = centroids[i][j];
+            }
+          }
+
+
+          count++;
+          //writeLabelsToFile(x, clusters, num_samples, num_features);
+          cout << "This is the iter " << count << " this is the number of points that changed centroids " << thresh_met_counter << endl;
+      }
+
+      double t1 = (double)(clock() - tStart) / CLOCKS_PER_SEC;
+      printf("Time taken for clustering serially : %.2fs\n", (double)(clock() - tStart) / CLOCKS_PER_SEC);
+
+      
+      //WITH IN SUM OF SQUARES
+      double wcss = 0;
+      for(int c = 0; c < k; c++){
+        for(int i = 0; i < num_samples; i++){
+          if(clusters[i] == c)
+            for(int j = 0; j < num_features; j++){
+              wcss = wcss + (x[i][j] - centroids[c][j]) * (x[i][j] - centroids[c][j]);
+            }
+        }
+      }
+      cout <<wcss<<endl;
+      wcss = wcss/num_samples;
+      cout << wcss << endl;
+
+      if(wcss < min_WCSS){
+        cout<<1<<endl;
+        min_WCSS = wcss;
+            cout<<1<<endl;
+
+
+        for(int c = 0; c < k; c++){
+            for(int j = 0; j < num_features; j++){
+              min_centroids[c][j] = centroids[c][j];
+            }
+        }
+      }
+      cout << "end" << endl;
   }
 
-  double **initial_centroids = new double *[k];
-  for (int i = 0; i < k; i++)
-  {
-    initial_centroids[i] = new double[num_features];
-    for (int j = 0; j < num_features; j++)
-    {
-      initial_centroids[i][j] = mins[j] +
-                                rand() % (int)maxes[j];
-    }
-  }
-
-  printf("Initial Centroids\n");
+  printf("InitialCentroids\n");
   for (int i = 0; i < k; i++)
   {
     printf("Centroid %d: (", i);
@@ -108,25 +303,41 @@ int main()
     }
     printf(")\n");
   }
-  double **final_centroid = kmeans(x, initial_centroids, num_samples, num_features, k);
-  double t1 = (double)(clock() - tStart) / CLOCKS_PER_SEC;
-  printf("Time taken for clustering serially : %.2fs\n", (double)(clock() - tStart) / CLOCKS_PER_SEC);
 
-  writeCentroidsToFile(final_centroid, k, num_features);
-  int *labels = getLabels(x, final_centroid, num_samples, num_features, k);
+  writeCentroidsToFile(min_centroids, k, num_features);
+  int *labels = getLabels(x, min_centroids, num_samples, num_features, k);
   writeLabelsToFile(x, labels, num_samples, num_features);
-  system("gnuplot -p plotCluster");
+  std::stringstream fmt;
+  fmt<<"gnuplot -p -e \"k="<< k <<"\" plotCluster.gp";
+  system(fmt.str().c_str());
 }
 
 double **kmeans(double **x, double **centroids,
-                int num_samples, int num_features, int k)
+                int num_samples, int num_features, int k,
+                double *mins, double *maxes)
 {
 
-  double **new_centroids = new double *[k];
+  double **old_centroids = new double *[k];
+
+  for (int i = 0; i < k; i++){
+    old_centroids[i] = new double[num_features];
+    for (int j = 0; j < num_features; j++){
+      old_centroids[i][j] = centroids[i][j];
+    }
+  }
+
   int *clusters;
 
   int count = 0;
-  while (count < 10000)
+  double thresh = 0.05;
+
+
+  int thresh_met_counter = 0;
+  bool thresh_met_max = false;
+
+
+  while (thresh_met_counter < (k * num_features) && count < 10000)
+  // while(count < 10000)
   {
     // std::copy(&centroids[0][0], // Used for convergence checking
     //           &centroids[0][0] + num_samples * num_features,
@@ -141,18 +352,33 @@ double **kmeans(double **x, double **centroids,
     //   }
     //   printf(")\n");
     // }
+
+    thresh_met_counter = 0;
     clusters = getLabels(x, centroids, num_samples, num_features, k);
-    centroids = getCentroids(x, centroids, clusters, num_samples, num_features, k);
-    // for (int i = 0; i < k; i++)
-    // {
-    //   for (int j = 0; j < num_features; j++)
-    //   {
-    //     centroids[i][j] = new_centroids[i][j];
-    //   }
-    // }
-    // centroids = new_centroids;
+    centroids = getCentroids(x, centroids, clusters, num_samples, num_features, k, mins, maxes);
+
+    for (int i = 0; i < k; i++)
+    {
+      for (int j = 0; j < num_features; j++)
+      {
+        // cout << abs(centroids[i][j] - old_centroids[i][j]) <<endl;
+        if (abs(centroids[i][j] - old_centroids[i][j]) / abs(centroids[i][j]) < thresh)
+        {
+          thresh_met_counter++;
+        }
+      }
+    }
+
+    for (int i = 0; i < k; i++)
+    {
+      for (int j = 0; j < num_features; j++)
+      {
+        old_centroids[i][j] = centroids[i][j];
+      }
+    }
+
     count++;
-    cout << count << endl;
+    cout << count << "    " << thresh_met_counter << endl;
   }
 
   return centroids;
@@ -200,7 +426,8 @@ int *getLabels(double **x, double **centroids,
  * the mean of the data points belonging to that cluster
  */
 double **getCentroids(double **x, double **centroids, int *clusters,
-                      int num_samples, int num_features, int k)
+                      int num_samples, int num_features, int k, 
+                      double *mins, double *maxes)
 {
   //Initializing everything to 0
   double **new_centroids = new double *[k];
@@ -238,7 +465,8 @@ double **getCentroids(double **x, double **centroids, int *clusters,
     for (int j = 0; j < num_features; j++)
     {
       if (counts[c] == 0)
-        new_centroids[c][j] = rand() % 500000; // If no data points in group, then reinitialize
+        new_centroids[c][j] = mins[j] +
+                              rand() % (int)maxes[j]; //600000; // If no data points in group, then reinitialize
       else
         new_centroids[c][j] = new_centroids[c][j] / counts[c];
     }
