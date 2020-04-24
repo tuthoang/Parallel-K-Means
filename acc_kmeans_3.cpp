@@ -14,6 +14,7 @@ using namespace std;
 #define k 20
 #define num_samples 3000
 #define num_features 2
+#define iterations 10000
 
 double **kmeans(double **x, double **initial_centroids, int samples, int features, int l, double *mins, double *maxes);
 int *getLabels(double **x, double **centroids, int samples, int features, int l);
@@ -101,13 +102,13 @@ int main()
         maxes[j] = x[i][j];
     }
   }
-  int ***random = new int**[10000];
+  int ***random = new int**[iterations];
   for (int i = 0; i < num_samples; i++)
   {
     random[i] = new int*[num_samples];
     for(int j = 0; j <num_samples; j++){
         random[i][j] = new int[num_features];
-        for(int l = 0; l < 2; l++){
+        for(int l = 0; l < num_features; l++){
             random[i][j][l] = ((int)mins[j] +
                         rand()) % (int)maxes[j];
         }
@@ -136,10 +137,10 @@ int main()
 
   cout << maxes[0] << "\t" << maxes[1] << endl;
  //This big for loop is sort of independent we can just copy all of the clusters into an array and see which ones have the min wcss and then select the one with the min
-  #pragma data copyin(x[0:num_samples][0:num_features]) copyin(initial_centroids[0:k][0:num_features]) copyin(final_centroids[0:10000][0:k][0:num_features]) copyin(wcss_array[0:10000]) copyin(random[0:10000][0:num_samples][0:2]) copyin(counts[0:10000][0:k]) copyin(centroids[0:k][0:num_features]) copyin(oldcentroids[0:k][0:num_features]) copyin(clusters[0:num_samples]) 
+  #pragma data enter copyin(x[0:num_samples][0:num_features], initial_centroids[0:k][0:num_features], final_centroids[0:iterations][0:k][0:num_features], wcss_array[0:iterations], random[0:iteraions][0:num_samples][0:num_features], counts[0:iterations][0:k], centroids[0:k][0:num_features], oldcentroids[0:k][0:num_features], clusters[0:num_samples], distances[0:num_samples][0:k])
   {
       #pragma acc parallel loop
-    for (int loop = 0; loop < 10000; loop++)
+    for (int loop = 0; loop < iterations; loop++)
     {
         // Do some preprocessing
 
@@ -154,7 +155,8 @@ int main()
         for (int j = 0; j < num_features; j++)
         {
             centroids[i][j] = mins[j] + random[loop][counter][j] % (int)maxes[j];
-            counter = (random[loop][counter][j]*random[((loop-counter) + loop)%10000][counter][j])%num_samples;
+            // counter = (random[loop][counter][j]*random[((loop-counter) + loop)%iterations][counter][j])%num_samples;
+            counter++;  
         }
         }
         // centroids = initial_centroids;
@@ -169,19 +171,6 @@ int main()
         //   }
         //   printf(")\n");
         // }
-
-        distances = new double *[num_samples];
-        for (int i = 0; i < num_samples; i++)
-        {
-            distances[i] = new double[k];
-            for (int j = 0; j < k; j++)
-            distances[i][j] = 0.0;
-        }
-        for (int i = 0; i < num_samples; i++)
-        {
-            clusters[i] = -1;
-        }
-
         
         for (int i = 0; i < k; i++)
         {
@@ -198,7 +187,7 @@ int main()
 
         int count = 0;
         
-        while (thresh_met_counter < (k * num_features) && count < 10000)
+       while (thresh_met_counter < (k * num_features) && count < 10000)
         // while(count<1000)
         {
             thresh_met_counter = 0;
@@ -264,7 +253,8 @@ int main()
                 else{
                     centroids[c][j] = centroids[c][j] / counts[loop][c];
                 }
-                counter = random[loop][counter][j]*42%num_samples;
+                // counter = random[loop][counter][j]*42%num_samples;
+                counter++;
                 }
                 
             }
@@ -298,8 +288,9 @@ int main()
             // cout << "This is the iter " << count << " this is the number of points that changed centroids " << thresh_met_counter << endl;
         }
 
-        double t1 = (double)(clock() - tStart) / CLOCKS_PER_SEC;
-        printf("Time taken for clustering serially : %.2fs\n", (double)(clock() - tStart) / CLOCKS_PER_SEC);
+        // double t1 = (double)(clock() - tStart) / CLOCKS_PER_SEC;
+        // printf("Time taken for clustering serially : %.2fs\n", (double)(clock() - tStart) / CLOCKS_PER_SEC);
+        cout<<"This is the end of "<<count<<" iter"<<endl;  
 
         
         //WITH IN SUM OF SQUARES
@@ -332,7 +323,10 @@ int main()
         final_centroids[loop] = centroids;
         }
       cout << "end" << endl;
-  }
+  } 
+  #pragma acc exit data copyout(final_centroids[0:iterations][0:k][0:num_features], wcss_array[0:iterations])
+  #pragma finalize
+
   double min = wcss_array[0];
   int index = 0;
   for(int i = 0; i < 10000; i++){
