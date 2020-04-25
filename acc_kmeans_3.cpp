@@ -157,7 +157,7 @@ int main()
  //This big for loop is sort of independent we can just copy all of the clusters into an array and see which ones have the min wcss and then select the one with the min
   #pragma data enter copyin(x[0:num_samples][0:num_features], initial_centroids[0:k][0:num_features], final_centroids[0:iterations][0:k][0:num_features], wcss_array[0:iterations], random[0:iterations][0:num_samples][0:num_features], counts[0:iterations][0:k], centroids[0:k][0:num_features], oldcentroids[0:k][0:num_features], clusters[0:iterations][0:num_samples], distances[0:num_samples][0:k])
   {
-   #pragma acc kernels
+   #pragma acc parallel loop independent
     for (int loop = 0; loop < iterations; loop++)
     {
         // Do some preprocessing    
@@ -167,7 +167,8 @@ int main()
         for (int j = 0; j < num_features; j++)
         {
             centroids[i][j] = mins[j] + random[loop][counter][j] % (int)maxes[j];
-            counter = (random[loop][counter][j]*random[((loop-counter) + loop)%iterations][counter][j])%num_samples;
+            //counter = (random[loop][counter][j]*random[((loop-counter) + loop)%iterations][counter][j])%num_samples;
+            counter++;  
         }
         }
         centroids = initial_centroids;
