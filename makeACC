@@ -10,15 +10,18 @@ CXXFLAGS = -DUSE_DOUBLE
 ifeq ($(ACCEL_TYPE),PGI)
 	CXXFLAGS += -fast
 else ifeq ($(ACCEL_TYPE),PGI-tesla)
-	CXXFLAGS += -Minfo=accel -fast -acc -ta=tesla:cc60
+	CXXFLAGS += -Minfo=accel -fast -acc -ta=tesla:cc70
 else ifeq ($(ACCEL_TYPE),PGI-multicore)
 	CXXFLAGS += -Minfo=accel -fast -acc -ta=multicore
 endif
 
-acc-parallel-means: acc-parallel-means.cpp makeACC
-	$(CXX) $(CXXFLAGS) acc-parallel-means.cpp  -o $@ 
+#acc-parallel-means: acc-parallel-means.cpp makeACC
+#	$(CXX) $(CXXFLAGS) acc-parallel-means.cpp  -o $@ 
+
+acc_kmeans: acc_kmeans_3.cpp makeACC
+	$(CXX) $(CXXFLAGS) acc_kmeans_3.cpp  -o $@ 
 
 .PHONY: clean
 
 clean:
-	rm -f acc-parallel-means.o acc-parallel-means
+	rm -f acc_kmeans_3.o acc-kmeans_3
