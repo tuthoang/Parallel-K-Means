@@ -103,7 +103,7 @@ int main()
   for (int loop = 0; loop < 10000; loop++)
   {
     // Do some preprocessing
-
+    clock_t tStart1 = clock();
 
     // initial_centroids = new double *[k];
     // centroids = new double *[k];
@@ -264,10 +264,9 @@ int main()
       }
 
       double t1 = (double)(clock() - tStart) / CLOCKS_PER_SEC;
-      printf("Time taken for clustering serially : %.2fs\n", (double)(clock() - tStart) / CLOCKS_PER_SEC);
+      printf("Time taken for clustering serially : %.2fs\n", (double)(clock() - tStart1) / CLOCKS_PER_SEC);
 
-      
-      //WITH IN SUM OF SQUARES
+            //WITH IN SUM OF SQUARES
       double wcss = 0;
       double wcss_cluster = 0;
       for(int c = 0; c < k; c++){

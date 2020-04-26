@@ -37,6 +37,8 @@ enum Color
 
 int main()
 {
+  #pragma acc init
+
   clock_t tStart = clock();
   srand(157); // seed 1
   // srand(time(NULL));
@@ -185,27 +187,28 @@ int main()
   //This big for loop is sort of independent we can just copy all of the clusters into an array and see which ones have the min wcss and then select the one with the min
 
 
-    // #pragma acc data copyin(x [0:num_samples] [0:num_features], \
-    //                       random [0:num_samples][0:num_features], \
-    //                       maxes [0:num_features],                  \
-    //                       mins [0:num_features]), \
-    //     create(centroids [0:k] [0:num_features])
-    // #pragma acc loop private(counter, counter1)
-    for (int loop = 0; loop < iterations; loop++)
+    #pragma acc data copyin(x [0:num_samples] [0:num_features], \
+                          random [0:num_samples][0:num_features], \
+                          maxes [0:num_features],                  \
+                          mins [0:num_features]), \
+        create(centroids [0:k] [0:num_features])
+    for (int loop1 = 0; loop1 < iterations; loop1++)
     {
-      printf("Counter: %d\n", counter);
+      clock_t tStart1 = clock();
+
+      // printf("Counter: %d\n", counter);
       // fflush(stdout);
 
-      printf("1\n");
-      fflush(stdout);
+      // printf("1\n");
+      // fflush(stdout);
       for (int i = 0; i < num_samples; i++)
       {
         // printf("i:%d\n",i);
         clusters[i] = 0;
       }
 
-      printf("2\n");
-      fflush(stdout);
+      // printf("2\n");
+      // fflush(stdout);
       // #pragma acc parallel loop vector_length(k)
       // #pragma acc parallel loop
       // #pragma acc parallel pcopy(counts [0:k])
@@ -213,13 +216,13 @@ int main()
       {
         counts[i] = 0;
       }
-      printf("3\n");
-      fflush(stdout);
+      // printf("3\n");
+      // fflush(stdout);
       // Do some preprocessing
 
         
-        // #pragma acc data present(random[:num_samples][:num_features])
-        // #pragma acc parallel loop collapse(2)
+        // #pragma acc data pcopyin(random[:num_samples][:num_features])
+        #pragma acc parallel loop collapse(2) present(random[0:num_samples][0:num_features])
         for (int i = 0; i < k; i++)
         {
           for (int j = 0; j < num_features; j++)
@@ -248,7 +251,7 @@ int main()
         // printf("1\n");
         // fflush(stdout);
 
-        // #pragma acc parallel loop collapse(2)
+        #pragma acc parallel loop collapse(2)
         for (int i = 0; i < k; i++)
         {
           for (int j = 0; j < num_features; j++)
@@ -266,11 +269,17 @@ int main()
         thresh_met_counter = 0;
         int min_WCSS = INT_MAX;
 
-        // int count = 0;
+        int count = 0;
 
-        // #pragma acc loop 
+        // #pragma acc loop
         //  present(centroids[0:k][0:num_features], mins[0:num_features], maxes[0:num_features], random[0:num_samples][0:num_features])
-        for(int count = 0;count < 10000; count++)
+        // #pragma acc data pcopyin(x [0:num_samples] [0:num_features], \
+        //                   random [0:num_samples][0:num_features], \
+        //                   maxes [0:num_features],                  \
+        //                   mins [0:num_features]) \
+        //               pcreate(centroids [0:k] [0:num_features])
+        // #pragma acc loop private(thresh_met_counter)
+        while(thresh_met_counter < (k * num_features) && count < 10000)
         // while(count<1000)
         {
             thresh_met_counter = 0;
@@ -278,18 +287,19 @@ int main()
             //Loop through each sample
             //Loop through cluster for the sample and find closest centroid
             double closest_dist;
-            // #pragma acc parallel loop vector_length(num_samples) copy(distances[0:num_samples][0:k], clusters[0:num_features]) present(centroids[0:k][0:num_features],  x[0:num_samples][0:num_features])
-            // #pragma parallel acc loop
+            // #pragma acc loop independent
+            #pragma acc parallel loop copyin(clusters[0:num_samples]) copyout(distances[0:num_samples][0:k])
             for (int i = 0; i < num_samples; i++)
             {
                 closest_dist = INT_MAX;
-                // #pragma acc loop 
+                #pragma acc loop
                 for (int c = 0; c < k; c++)
                 {
                   //Calculate l2 distance from each cluster
                   //This is a data independet loop so I should be able to do a parallelization
                   double sum_dist = 0;
-                  // #pragma acc loop vector reduction(+:sum_dist)
+                  #pragma acc loop reduction(+:sum_dist)
+                  // #pragma acc loop
                   for (int j = 0; j < num_features; j++)
                   {
                       sum_dist += ((x[i][j] - centroids[c][j]) * (x[i][j] - centroids[c][j]));
@@ -312,6 +322,7 @@ int main()
             // #pragma acc data copyin(clusters[0:num_samples], thresh_met_counter) create(counts[0:k]) 
             {
             // #pragma acc parallel loop present(centroids[0:k][0:num_features], x[0:num_samples][0:num_features])
+            #pragma acc loop independent
             for (int c = 0; c < k; c++)
             {
                 counts[c] = 0;
@@ -389,9 +400,8 @@ int main()
             }
             // printf("666\n");
             // fflush(stdout);
-            if (thresh_met_counter < (k * num_features))
-              break;
-            // count++;
+
+            count++;
             //writeLabelsToFile(x, clusters, num_samples, num_features);
             // cout << "This is the iter " << count << " this is the number of points that changed centroids " << thresh_met_counter << endl;
         }
@@ -448,9 +458,9 @@ int main()
         }
 
         // final_centroids[loop] = centroids;
-        printf("Time taken for clustering acc : %.2fs\n", (double)(clock() - tStart) / CLOCKS_PER_SEC);
+        printf("Time taken for clustering acc : %.2fs\n", (double)(clock() - tStart1) / CLOCKS_PER_SEC);
 
-        printf("This is the loop %d \n", loop);
+        printf("This is the loop %d \n", loop1);
         fflush(stdout);
 
         }
