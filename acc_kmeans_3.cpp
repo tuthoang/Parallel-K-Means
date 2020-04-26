@@ -15,7 +15,7 @@
 #define k 8
 #define num_samples 6500
 #define num_features 2
-#define iterations 10000
+#define iterations 1000
 
 int *getLabels(double **x, double **centroids);
 void writeCentroidsToFile(std::string centroids_file, double **final_centroid, int l, int features);
@@ -214,28 +214,28 @@ int main()
           for (int j = 0; j < num_features; j++)
           {
               centroids[i][j] =random[counter][j];
-              printf("%f :         %d                  %f \n", random[counter][j], counter, random[counter][j]);
-              fflush(stdout);
+              // printf("%f :         %d                  %f \n", random[counter][j], counter, random[counter][j]);
+              // fflush(stdout);
 
               counter = ((counter+23) * 42)%num_samples;
 
               // counter++;  
           }
-          printf("\n");
-          fflush(stdout);
+          // printf("\n");
+          // fflush(stdout);
         }
-        printf("Initial Centroids\n");
-        for (int i = 0; i < k; i++)
-        {
-          printf("Centroid %d: (", i);
-          for (int j = 0; j < num_features; j++)
-          {
-            printf("%f ", centroids[i][j]);
-          }
-          printf(")\n");
-        }
-        printf("1\n");
-        fflush(stdout);
+        // printf("Initial Centroids\n");
+        // for (int i = 0; i < k; i++)
+        // {
+        //   printf("Centroid %d: (", i);
+        //   for (int j = 0; j < num_features; j++)
+        //   {
+        //     printf("%f ", centroids[i][j]);
+        //   }
+        //   printf(")\n");
+        // }
+        // printf("1\n");
+        // fflush(stdout);
 
         // #pragma acc loop vector
         for (int i = 0; i < k; i++)
@@ -245,8 +245,8 @@ int main()
               old_centroids[i][j] = centroids[i][j];
             }
         }
-        printf("111\n");
-        fflush(stdout);
+        // printf("111\n");
+        // fflush(stdout);
 
         // double **final_centroid = kmeans(x, initial_centroids, num_samples, num_features, k, mins, maxes);
 
@@ -297,8 +297,8 @@ int main()
                   }
                 }
             }
-            printf("222\n");
-            fflush(stdout);
+            // printf("222\n");
+            // fflush(stdout);
 
             // counts holds the number of data points currently in the cluster
             // #pragma acc data copyin(clusters[0:num_samples], thresh_met_counter) create(counts[0:k]) 
@@ -322,8 +322,8 @@ int main()
                 }
             }
 
-            printf("333\n");
-            fflush(stdout);
+            // printf("333\n");
+            // fflush(stdout);
             // #pragma acc parallel loop present(maxes[0:num_features], mins[0:num_features], counts[0:k], random[0:num_samples][0:num_features], centroids[0:k][0:num_features])
             for (int c = 0; c < k; c++)
             {
@@ -338,8 +338,8 @@ int main()
                   {
                       // cout<< c << "  Has no data points.  " << mins[j] << " \t" << maxes[j]<<endl;
                       centroids[c][j] = random[counter1][j]; // If no data points in group, then reinitialize
-                      printf("centroid: %d \t val: %f\n", c, centroids[c][j]);
-                      fflush(stdout);
+                      // printf("centroid: %d \t val: %f\n", c, centroids[c][j]);
+                      // fflush(stdout);
                   }
                   else{
                       centroids[c][j] = centroids[c][j] / counts[c];
@@ -349,8 +349,8 @@ int main()
                 }
                 
             }
-            printf("444\n");
-            fflush(stdout);
+            // printf("444\n");
+            // fflush(stdout);
             // #pragma acc parallel loop reduction(+:thresh_met_counter) present(centroids[0:k][0:num_features], thresh_met_counter)
             for (int i = 0; i < k; i++)
             {
@@ -367,8 +367,8 @@ int main()
                 }
               }
             }
-            printf("555\n");
-            fflush(stdout);
+            // printf("555\n");
+            // fflush(stdout);
             // #pragma acc parallel loop present(centroids[0:k][0:num_features])
             for (int i = 0; i < k; i++)
             {
@@ -379,8 +379,8 @@ int main()
                 }
             }
             }
-            printf("666\n");
-            fflush(stdout);
+            // printf("666\n");
+            // fflush(stdout);
 
             count++;
             //writeLabelsToFile(x, clusters, num_samples, num_features);
@@ -412,26 +412,26 @@ int main()
             }
             wcss += sqrt(wcss_cluster);
         }
-        printf("777\n");
-        fflush(stdout);
+        // printf("777\n");
+        // fflush(stdout);
         // cout <<wcss<<endl;
         wcss = wcss/num_samples;
         // cout << wcss << endl;
-        printf("888\n");
-        fflush(stdout);
+        // printf("888\n");
+        // fflush(stdout);
 
         if(wcss < min_WCSS){
-          printf("999\n");
-          fflush(stdout);
+          // printf("999\n");
+          // fflush(stdout);
           min_WCSS = (int)wcss;
-          printf("min_WCSS: %f\n", min_WCSS);
-          fflush(stdout);
+          // printf("min_WCSS: %f\n", min_WCSS);
+          // fflush(stdout);
           for (int c = 0; c < k; c++)
           {
             for (int j = 0; j < num_features; j++)
             {
-              printf("c : %d, j: %d\n", c, j);
-              fflush(stdout);
+              // printf("c : %d, j: %d\n", c, j);
+              // fflush(stdout);
               min_centroids[c][j] = centroids[c][j];
             }
           }
@@ -456,13 +456,15 @@ int main()
   //   }
   // }
   // min_centroids = centroids;
-  printf("asdasdasdsadas\n");
+  // printf("asdasdasdsadas\n");
   for(int i = 0; i < k ; i++){
-    for(int j = 0; j < num_features; i++){
-      printf("000\n");
-      std::cout << min_centroids[i][j] << " ";
+    for(int j = 0; j < num_features; j++){
+      // printf("000\n");
+      printf("%d %d\n", i,j);
+
+      printf("%f ", min_centroids[i][j]);
     }
-    std::cout << std::endl;
+    printf("\n");
   }
   // int* final_cluster = new int[num_samples];
   // final_cluster = clusters[index];
@@ -626,7 +628,7 @@ void writeCentroidsToFile(std::string centroids_file, double **final_centroid, i
   outfile.close();
 }
 
-void writeLabelsToFile(std::string filename, int **x, int *labels, int samples, int features)
+void writeLabelsToFile(std::string filename, double **x, int *labels, int samples, int features)
 {
   std::string color;
   std::ofstream outfile;
