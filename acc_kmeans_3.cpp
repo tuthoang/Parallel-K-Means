@@ -17,9 +17,9 @@
 #define num_features 2
 #define iterations 10000
 
-int *getLabels(int **x, int **centroids);
-void writeCentroidsToFile(std::string centroids_file, int **final_centroid, int l, int features);
-void writeLabelsToFile(std::string filename, int **x, int *labels, int samples, int features);
+int *getLabels(double **x, double **centroids);
+void writeCentroidsToFile(std::string centroids_file, double **final_centroid, int l, int features);
+void writeLabelsToFile(std::string filename, double **x, int *labels, int samples, int features);
 
 enum Color
 {
@@ -43,11 +43,11 @@ int main()
 // int k = 8;
 // int num_samples =3000;
 // int num_features= 2;
-  int **x = new int *[num_samples];
+  double **x = new double *[num_samples];
 
   for (int i = 0; i < num_samples; i++)
   {
-    x[i] = new int[num_features];
+    x[i] = new double[num_features];
     for(int j = 0; j < num_features; j++)
       x[i][j] = 0;
   }
@@ -69,7 +69,7 @@ int main()
         result.push_back(s);
       for (int i = 0; i < result.size(); i++)
       {
-        x[linenum][i] = std::stoi(result[i]);
+        x[linenum][i] = std::stod(result[i]);
         std::cout<<x[linenum][i] << std::endl;
       }
       linenum++;
@@ -81,24 +81,24 @@ int main()
   {
     for (int j = 0; j < num_features; j++)
     {
-      printf("%d ", x[i][j]);
+      printf("%f ", x[i][j]);
     }
     printf("\n");
   }
 
   std::cout<<linenum << "   "<<num_samples<<std::endl;
   //All the neccessarry array declarations
-  int **centroids = new int *[k];
-  int **min_centroids = new int *[k];
-  int **initial_centroids = new int *[k];
-  int *clusters = new int[num_samples];
-  int **distances = new int *[num_samples];
+  double **centroids = new double *[k];
+  double **min_centroids = new double *[k];
+  double **initial_centroids = new double *[k];
+  double *clusters = new double[num_samples];
+  double **distances = new double *[num_samples];
   int *mins = new int[num_features];
   int *maxes = new int[num_features];
-  int **old_centroids = new int *[k];
+  double **old_centroids = new double *[k];
   int *counts = new int[num_features];
   int *wcss_array = new int[iterations];
-  int **final_centroids = new int *[k];
+  double **final_centroids = new double *[k];
 
   // Initialize clusters randomly, but only within the min-max range
   mins = new int[num_features];
@@ -145,10 +145,10 @@ int main()
     wcss_array[z] = 0;
   }
   for(int i = 0; i < k; i++){
-    final_centroids[i] = new int[num_features];
-    centroids[i] = new int[num_features];
-    initial_centroids[i] = new int[num_features];
-    old_centroids[i] = new int[num_features];
+    final_centroids[i] = new double[num_features];
+    centroids[i] = new double[num_features];
+    initial_centroids[i] = new double[num_features];
+    old_centroids[i] = new double[num_features];
     for (int j = 0; j < num_features; j++)
     {
       final_centroids[i][j] = 0;
@@ -161,7 +161,7 @@ int main()
   printf("init random 2\n");
 
   for(int i = 0; i <num_samples; i++){
-    distances[i] = new int[k];
+    distances[i] = new double[k];
     for(int j = 0; j < k ; j++){
       distances[i][k] =0;
     }
@@ -212,13 +212,15 @@ int main()
           for (int j = 0; j < num_features; j++)
           {
               centroids[i][j] =random[counter][j];
-              printf("%f :         %d    \n", random[counter][j], counter);
+              printf("%f :         %d                  %f \n", random[counter][j], counter, random[counter][j]);
+              fflush(stdout);
 
               counter = ((counter+23) * 42)%num_samples;
 
               // counter++;  
           }
           printf("\n");
+          fflush(stdout);
         }
         printf("Initial Centroids\n");
         for (int i = 0; i < k; i++)
@@ -334,7 +336,7 @@ int main()
                   {
                       // cout<< c << "  Has no data points.  " << mins[j] << " \t" << maxes[j]<<endl;
                       centroids[c][j] = random[counter1][j]; // If no data points in group, then reinitialize
-                      printf("centroid: %d \t val: %d\n", c, centroids[c][j]);
+                      printf("centroid: %d \t val: %f\n", c, centroids[c][j]);
                       fflush(stdout);
                   }
                   else{
@@ -406,7 +408,7 @@ int main()
                   }
               }
             }
-            printf("wcss_cluster: %d\n", wcss_cluster);
+            printf("wcss_cluster: %f\n", wcss_cluster);
             fflush(stdout);
             wcss += sqrt(wcss_cluster);
         }
@@ -486,7 +488,7 @@ int main()
   // PLOT WITH GNUPLOT
   // system(fmt.str().c_str());
 
-  int **ground_truth = new int *[k];
+  double **ground_truth = new double *[k];
   std::ifstream myfile1(ground_truth_filename);
   delimiter = " ";
   linenum = 0;
@@ -498,7 +500,7 @@ int main()
       std::istringstream iss(line);
       for (std::string s; iss >> s;)
         result.push_back(s);
-      ground_truth[linenum] = new int[num_features];
+      ground_truth[linenum] = new double[num_features];
       for (int i = 0; i < result.size(); i++)
       {
         ground_truth[linenum][i] = std::stod(result[i]);
@@ -534,7 +536,7 @@ int main()
  * Assigns clusters on the given data by
  * calculating the closest distance to current centroids
  */
-int *getLabels(int **x, int **centroids)
+int *getLabels(double **x, double **centroids)
 {
   int *clusters = new int[num_samples];
   double l2_dist;
@@ -600,7 +602,7 @@ std::string getColor(int val)
   return color;
 }
 
-void writeCentroidsToFile(std::string centroids_file, int **final_centroid, int l, int features)
+void writeCentroidsToFile(std::string centroids_file, double **final_centroid, int l, int features)
 {
   std::ofstream outfile;
   outfile.open(centroids_file);
