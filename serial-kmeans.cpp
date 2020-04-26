@@ -123,17 +123,17 @@ int main()
       }
     }
     // centroids = initial_centroids;
-      printf("Initial Centroids\n");
-      for (int i = 0; i < k; i++)
-      {
-        printf("Centroid %d: (", i);
-        for (int j = 0; j < num_features; j++)
-        {
-          printf("%f ", initial_centroids[i][j]);
+      // printf("Initial Centroids\n");
+      // for (int i = 0; i < k; i++)
+      // {
+      //   printf("Centroid %d: (", i);
+      //   for (int j = 0; j < num_features; j++)
+      //   {
+      //     printf("%f ", initial_centroids[i][j]);
 
-        }
-        printf(")\n");
-      }
+      //   }
+      //   printf(")\n");
+      // }
 
       distances = new double *[num_samples];
       for (int i = 0; i < num_samples; i++)
@@ -260,7 +260,7 @@ int main()
 
           count++;
           //writeLabelsToFile(x, clusters, num_samples, num_features);
-          cout << "This is the iter " << count << " this is the number of points that changed centroids " << thresh_met_counter << endl;
+          // cout << "This is the iter " << count << " this is the number of points that changed centroids " << thresh_met_counter << endl;
       }
 
       double t1 = (double)(clock() - tStart) / CLOCKS_PER_SEC;
@@ -293,7 +293,8 @@ int main()
             }
         }
       }
-      cout << "end" << endl;
+      // cout << "end" << endl;
+      printf("This is the loop %d \n", loop);
   }
 
   printf("InitialCentroids\n");
