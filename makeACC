@@ -10,7 +10,7 @@ CXXFLAGS = -DUSE_DOUBLE
 ifeq ($(ACCEL_TYPE),PGI)
 	CXXFLAGS += -fast
 else ifeq ($(ACCEL_TYPE),PGI-tesla)
-	CXXFLAGS += -Minfo=accel -fast -acc -ta=tesla:cc70
+	CXXFLAGS += -Minfo=accel -fast -acc -ta=tesla:cc60
 else ifeq ($(ACCEL_TYPE),PGI-multicore)
 	CXXFLAGS += -Minfo=accel -fast -acc -ta=multicore
 endif
