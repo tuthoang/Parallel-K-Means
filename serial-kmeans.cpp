@@ -29,6 +29,7 @@ enum Color
   brown
 };
 
+#define iterations 10000
 int main()
 {
   clock_t tStart = clock();
@@ -100,7 +101,7 @@ int main()
   }
   cout << maxes[0] << "\t" << maxes[1] << endl;
 
-  for (int loop = 0; loop < 1000; loop++)
+  for (int loop = 0; loop < iterations; loop++)
   {
     // Do some preprocessing
     clock_t tStart1 = clock();

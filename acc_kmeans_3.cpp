@@ -47,7 +47,7 @@ int main()
   int const k = 8;
   int const num_samples = 6500;
   int const num_features = 2;
-  int const iterations = 1000;
+  int const iterations = 10000;
   double **x = new double *[num_samples];
 
   for (int i = 0; i < num_samples; i++)
@@ -250,7 +250,7 @@ int main()
         // printf("1\n");
         // fflush(stdout);
 
-        #pragma acc parallel loop collapse(2)
+        // #pragma acc parallel loop collapse(2)
         for (int i = 0; i < k; i++)
         {
           for (int j = 0; j < num_features; j++)
@@ -341,14 +341,15 @@ int main()
 
             // printf("333\n");
             // fflush(stdout);
-            #pragma acc parallel loop present(counts[0:k], random[0:num_samples][0:num_features], centroids[0:k][0:num_features])
+            // #pragma acc parallel loop present(counts[0:k], random[0:num_samples][0:num_features], centroids[0:k][0:num_features]) \
+            // private(counter1)
             for (int c = 0; c < k; c++)
             {
                 // Divide by number of data points in cluster
                 // This is the new centroid (average)
                 // printf("%d  ", c);
 
-                #pragma acc loop independent
+                // #pragma acc loop
                 for (int j = 0; j < num_features; j++)
                 {
                   if (counts[c] == 0)
@@ -357,11 +358,11 @@ int main()
                       centroids[c][j] = random[counter1][j]; // If no data points in group, then reinitialize
                       // printf("centroid: %d \t val: %f\n", c, centroids[c][j]);
                       // fflush(stdout);
+                      counter1 = ((counter1 + 531) * 42) % num_samples;
                   }
                   else{
                       centroids[c][j] = centroids[c][j] / counts[c];
                   }
-                  counter1 = (counter1+531)*42%num_samples;
                   // counter1++;
                 }
                 
@@ -482,11 +483,10 @@ int main()
   //   }
   // }
   // min_centroids = centroids;
-  // printf("asdasdasdsadas\n");
+  printf("min centroids\n");
   for(int i = 0; i < k ; i++){
     for(int j = 0; j < num_features; j++){
       // printf("000\n");
-      printf("%d %d\n", i,j);
 
       printf("%f ", min_centroids[i][j]);
     }
