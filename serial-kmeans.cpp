@@ -100,7 +100,7 @@ int main()
   }
   cout << maxes[0] << "\t" << maxes[1] << endl;
 
-  for (int loop = 0; loop < 10000; loop++)
+  for (int loop = 0; loop < 1000; loop++)
   {
     // Do some preprocessing
     clock_t tStart1 = clock();
@@ -295,6 +295,7 @@ int main()
       // cout << "end" << endl;
       printf("This is the loop %d \n", loop);
   }
+  printf("Time taken for clustering serially : %.2fs\n", (double)(clock() - tStart) / CLOCKS_PER_SEC);
 
   printf("InitialCentroids\n");
   for (int i = 0; i < k; i++)
