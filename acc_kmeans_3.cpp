@@ -149,12 +149,14 @@ int main()
     centroids[i] = new double[num_features];
     initial_centroids[i] = new double[num_features];
     old_centroids[i] = new double[num_features];
+    min_centroids[i] = new double[num_features];
     for (int j = 0; j < num_features; j++)
     {
       final_centroids[i][j] = 0;
-      centroids[i][j] = 5;
+      centroids[i][j] = 0;
       initial_centroids[i][j] = 0;
       old_centroids[i][j] = 0;  
+      min_centroids[i][j] = 0;
       }
   }
   
@@ -408,8 +410,6 @@ int main()
                   }
               }
             }
-            printf("wcss_cluster: %f\n", wcss_cluster);
-            fflush(stdout);
             wcss += sqrt(wcss_cluster);
         }
         printf("777\n");
@@ -430,6 +430,8 @@ int main()
           {
             for (int j = 0; j < num_features; j++)
             {
+              printf("c : %d, j: %d\n", c, j);
+              fflush(stdout);
               min_centroids[c][j] = centroids[c][j];
             }
           }
