@@ -29,7 +29,7 @@ enum Color
   brown
 };
 
-#define iterations 10000
+#define iterations 1000
 int main()
 {
   clock_t tStart = clock();
@@ -37,9 +37,9 @@ int main()
   // srand(time(NULL));
   setlocale(LC_ALL, "en_US.UTF-8");
   // Synthetic data
-  int k = 20;              // Number of clusters
+  int k = 8;              // Number of clusters
   int num_features = 2;   // x1, x2
-  int num_samples = 3000; // total number of data points
+  int num_samples = 6500; // total number of data points
   double **x = new double *[num_samples];
 
   for (int i = 0; i < num_samples; i++)
@@ -47,8 +47,8 @@ int main()
     x[i] = new double[num_features];
   }
 
-  string filename = "a1.txt";
-  string ground_truth_filename = "a1-ga-cb.txt";
+  string filename = "synthetic_dataset.txt";
+  string ground_truth_filename = "synthetic_dataset_gt.txt";
 
   std::string line;
   std::ifstream myfile(filename);
@@ -261,7 +261,7 @@ int main()
 
           count++;
           //writeLabelsToFile(x, clusters, num_samples, num_features);
-          // cout << "This is the iter " << count << " this is the number of points that changed centroids " << thresh_met_counter << endl;
+          cout << "This is the iter " << count << " this is the number of points that changed centroids " << thresh_met_counter << endl;
       }
 
       double t1 = (double)(clock() - tStart) / CLOCKS_PER_SEC;
