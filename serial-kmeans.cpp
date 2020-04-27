@@ -29,7 +29,7 @@ enum Color
   brown
 };
 
-#define iterations 10000
+#define iterations 1000
 int main()
 {
   clock_t tStart = clock();
@@ -110,15 +110,18 @@ int main()
     // centroids = new double *[k];
     // min_centroids = new double *[k];
     
+    int idx;
     for (int i = 0; i < k; i++)
     {
       initial_centroids[i] = new double[num_features];
       centroids[i] = new double[num_features];
       min_centroids[i] = new double[num_features];
+      idx = rand() % num_samples;
       for (int j = 0; j < num_features; j++)
       {
-        initial_centroids[i][j] = mins[j] +
-                                  rand() % (int)maxes[j];
+        // initial_centroids[i][j] = mins[j] +
+        //                           rand() % (int)maxes[j];
+        initial_centroids[i][j] = x[idx][j];
         centroids[i][j] = initial_centroids[i][j];
         min_centroids[i][j] = initial_centroids[i][j];
       }
@@ -200,6 +203,8 @@ int main()
                 closest_dist = distances[i][c];
                 clusters[i] = c;
               }
+              // closest_dist = min(closest_dist, distances[i][c]);
+              // printf("Closest dist : %f \n", closest_dist);
             }
           }
 
@@ -207,20 +212,35 @@ int main()
           // counts holds the number of data points currently in the cluster
           counts = new int[k];
           for (int c = 0; c < k; c++)
-          {
             counts[c] = 0;
-            for (int i = 0; i < num_samples; i++)
-            {
-              if (clusters[i] == c)
-              {
-                counts[c] += 1;
-                for (int j = 0; j < num_features; j++)
-                {
-                  centroids[c][j] += x[i][j];
-                }
-              }
+
+          for(int i = 0; i < num_samples; i ++){
+            counts[clusters[i]]++;
+          }
+
+
+          for (int i = 0; i < num_samples; i++)
+          {
+            for (int j = 0; j < num_features; j++){
+              centroids[clusters[i]][j] += x[i][j];
             }
           }
+
+          // for (int c = 0; c < k; c++)
+          // {
+          //   counts[c] = 0;
+          //   for (int i = 0; i < num_samples; i++)
+          //   {
+          //     if (clusters[i] == c)
+          //     {
+          //       counts[c] += 1;
+          //       for (int j = 0; j < num_features; j++)
+          //       {
+          //         centroids[c][j] += x[i][j];
+          //       }
+          //     }
+          //   }
+          // }
 
           for (int c = 0; c < k; c++)
           {
@@ -228,13 +248,14 @@ int main()
             // This is the new centroid (average)
             for (int j = 0; j < num_features; j++)
             {
-              if (counts[c] == 0)
-              {
-                // cout<< c << "  Has no data points.  " << mins[j] << " \t" << maxes[j]<<endl;
-                centroids[c][j] = mins[j] + rand() % (int)maxes[j]; // If no data points in group, then reinitialize
-              }
-              else
-                centroids[c][j] = centroids[c][j] / counts[c];
+              // if (counts[c] == 0)
+              // {
+              //   // cout<< c << "  Has no data points.  " << mins[j] << " \t" << maxes[j]<<endl;
+              //   centroids[c][j] = mins[j] + rand() % (int)maxes[j]; // If no data points in group, then reinitialize
+              // }
+              // else
+              printf("counts: %d \n", counts[c]);
+              centroids[c][j] = centroids[c][j] / counts[c];
             }
           }
 

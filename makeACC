@@ -15,10 +15,10 @@ else ifeq ($(ACCEL_TYPE),PGI-multicore)
 	CXXFLAGS += -Minfo=accel -fast -acc -ta=multicore
 endif
 
-acc-parallel-means: acc-parallel-means.cpp makeACC
-	$(CXX) $(CXXFLAGS) acc-parallel-means.cpp  -o $@ 
+acc_kmeans_3: acc_kmeans_3.cpp makeACC
+	$(CXX) $(CXXFLAGS) acc_kmeans_3.cpp  -o $@ 
 
 .PHONY: clean
 
 clean:
-	rm -f acc-parallel-means.o acc-parallel-means
+	rm -f acc_kmeans_3.o acc_kmeans_3
