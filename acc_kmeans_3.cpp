@@ -436,21 +436,21 @@ int main()
         double wcss = 0;
         double wcss_cluster = 0;
 
-        for(int c = 0; c < k; c++){
-            wcss_cluster = 0;
+        // for(int c = 0; c < k; c++){
+        //     wcss_cluster = 0;
 
             // #pragma acc loop reduction(+: wcss_cluster)
             for(int i = 0; i < num_samples; i++){
-              if(clusters[i] == c){
+              // if(clusters[i] == c){
                   // #pragma acc loop reduction(+: wcss_cluster)
                   for(int j = 0; j < num_features; j++){
                     // printf("clusters: %d                x: %d             centroids: %d\n", c, x[i][j], centroids[c][j]);
-                    wcss_cluster += (x[i][j] - centroids[c][j]) * (x[i][j] - centroids[c][j]);
+                    wcss += (x[i][j] - centroids[(int)clusters[i]][j]) * (x[i][j] - centroids[(int)clusters[i]][j]);
                   }
               }
-            }
-            wcss +=  sqrt(wcss_cluster);
-        }
+            // }
+            wcss =  sqrt(wcss);
+        // }
        
         wcss =  wcss/num_samples;
 

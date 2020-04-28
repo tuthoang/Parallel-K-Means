@@ -29,7 +29,7 @@ enum Color
   brown
 };
 
-#define iterations 1000
+#define iterations 10000
 int main()
 {
   clock_t tStart = clock();
