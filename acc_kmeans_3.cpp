@@ -189,15 +189,15 @@ int main()
     #pragma acc data copyin(x [0:num_samples] [0:num_features], \
                           random [0:num_samples][0:num_features], \
                           maxes [0:num_features],                  \
-                          mins [0:num_features], min_WCSS), \
-        create(centroids [0:k] [0:num_features], clusters[0:num_samples], distances[0:num_samples][0:k], counts[0:k])
+                          mins [0:num_features], min_WCSS)
+        // create(centroids [0:k] [0:num_features], clusters[0:num_samples], distances[0:num_samples][0:k], counts[0:k])
     
     for (int loop1 = 0; loop1 < iterations; loop1++)
     {
       int counter1 = 0;
       clock_t tStart1 = clock();
 
-      // printf("Counter: %d\n", counter);
+      printf("Counter: %d\n", counter);
       // fflush(stdout);
 
       // printf("1\n");
@@ -217,7 +217,7 @@ int main()
       // Do some preprocessing
       counter = 0;
 
-      #pragma acc parallel loop present(random[:num_samples][:num_features]) collapse(2)
+      // #pragma acc parallel loop present(random[:num_samples][:num_features]) collapse(2)
         for (int i = 0; i < k; i++)
         {
           for (int j = 0; j < num_features; j++)
@@ -267,18 +267,18 @@ int main()
             double closest_dist;
             // #pragma acc loop independent
 
-            #pragma acc loop gang
+            // #pragma acc loop gang
             for (int i = 0; i < num_samples; i++)
             {
                 closest_dist = INT_MAX;
-                #pragma acc loop
+                // #pragma acc loop
                 for (int c = 0; c < k; c++)
                 {
                   //Calculate l2 distance from each cluster
                   //This is a data independet loop so I should be able to do a parallelization
                   double sum_dist = 0;
                   // #pragma acc loop
-                  #pragma acc loop reduction(+:sum_dist)
+                  // #pragma acc loop reduction(+:sum_dist)
                   for (int j = 0; j < num_features; j++)
                   {
                       sum_dist += ((x[i][j] - centroids[c][j]) * (x[i][j] - centroids[c][j]));
@@ -324,7 +324,22 @@ int main()
               counts[(int)clusters[i]]++;
             }
 
-            #pragma acc parallel loop collapse(2)
+            for(int c = 0; c < k; c++){
+              if (counts[c] == 0)
+              {
+                counts[c] = 1;
+                for (int j = 0; j < num_features; j++)
+                {
+                  centroids[c][j] = (random[counter1][j] + mins[j]) % maxes[j]; // If no data points in group, then reinitialize
+                  // printf("%d  Has no data points.  %f\n", c, centroids[c][j]);
+                  // counter1 = (abs(counter1 + 39 + c*82)) % num_samples;
+                }
+                counter1 = (counter1 + 1) % num_samples;
+              }
+            }
+
+            
+            #pragma acc loop collapse(2)
             for (int i = 0; i < num_samples; i++)
             {
               for (int j = 0; j < num_features; j++)
@@ -342,17 +357,7 @@ int main()
                 // #pragma acc loop
                 for (int j = 0; j < num_features; j++)
                 {
-                  // if (counts[c] == 0 )
-                  // {
-                  //     centroids[c][j] = (random[counter1][j] + mins[j])%maxes[j]; // If no data points in group, then reinitialize
-                  //     // printf("%d  Has no data points.  %f\n", c, centroids[c][j]);
-
-                  //     // counter1 = (abs(counter1 + 39 + c*82)) % num_samples;
-                  //     counter1 =( counter1+1)%num_samples;
-                  // }
-                  // else{
-                      centroids[c][j] = (centroids[c][j] / counts[c]);
-                  // }
+                  centroids[c][j] = (centroids[c][j] / counts[c]);
                   // counter1++;
                 }
             }
