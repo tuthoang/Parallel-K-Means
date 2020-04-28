@@ -257,9 +257,11 @@ int main()
         int count = 0;
 
         // #pragma acc loop private(thresh_met_counter, min_WCSS,minIndex)
+        #pragma acc data copyin(centroids[0:k][0:num_features])
         while((thresh_met_counter < (k * num_features) && count < 10000) )
         // while(count<1000)
         {
+          printf("count: %d\n", count);
             thresh_met_counter = 0;
 
             //Loop through each sample
@@ -268,30 +270,26 @@ int main()
             // #pragma acc loop independent
 
             // #pragma acc loop gang
+            // #pragma acc parallel loop vector
             for (int i = 0; i < num_samples; i++)
             {
-                closest_dist = INT_MAX;
                 // #pragma acc loop
                 for (int c = 0; c < k; c++)
                 {
                   //Calculate l2 distance from each cluster
                   //This is a data independet loop so I should be able to do a parallelization
-                  double sum_dist = 0;
-                  // #pragma acc loop
-                  // #pragma acc loop reduction(+:sum_dist)
-                  for (int j = 0; j < num_features; j++)
-                  {
-                      sum_dist += ((x[i][j] - centroids[c][j]) * (x[i][j] - centroids[c][j]));
-                  }
-                  distances[i][c] = (sqrt(sum_dist));
-                  // cout << distances[i][c] <<endl;
-                  // closest_dist = distances[i][0];
-                  if (distances[i][c] < closest_dist)
-                  {
-                      // cout<< c << endl;
-                      closest_dist = distances[i][c];
-                      clusters[i] = c;
-                  }
+                  distances[i][c] = sqrt(pow(x[i][0] - centroids[c][0], 2) + pow(x[i][1] - centroids[c][1], 2));
+                }
+            }
+
+            for (int i = 0; i< num_samples; i++){
+              closest_dist = INT_MAX;
+              for(int c = 0; c < k; c++)
+                if(distances[i][c] < closest_dist)
+                {
+                  // cout<< c << endl;
+                  closest_dist = distances[i][c];
+                  clusters[i] = c;
                 }
             }
             // #pragma acc parallel loop present(centroids[0:k][0:num_features], x[0:num_samples][0:num_features], counts[0:k])
@@ -318,7 +316,7 @@ int main()
             for (int c = 0; c < k; c++)
               counts[c] = 0;
 
-            #pragma acc loop
+
             for (int i = 0; i < num_samples; i++)
             {
               counts[(int)clusters[i]]++;
@@ -339,27 +337,33 @@ int main()
             }
 
             
-            #pragma acc loop collapse(2)
+            // #pragma acc parallel loop vector
             for (int i = 0; i < num_samples; i++)
             {
-              for (int j = 0; j < num_features; j++)
-              {
-                centroids[(int)clusters[i]][j] += x[i][j];
-              }
+              int c = clusters[i]; // label of data point i
+              // #pragma acc loop vector
+              // for (int j = 0; j < num_features; j++)
+              // {
+              //   centroids[c][j] += (x[i][j]);
+              // }
+              centroids[c][0] += x[i][0];
+              centroids[c][1] += x[i][1];
             }
 
             // #pragma acc parallel loop present(counts[0:k], random[0:num_samples][0:num_features], centroids[0:k][0:num_features]) 
-            #pragma acc parallel loop collapse(2)
+            // #pragma acc parallel loop vector
             for (int c = 0; c < k; c++)
             {
                 // Divide by number of data points in cluster
                 // This is the new centroid (average)
-                // #pragma acc loop
-                for (int j = 0; j < num_features; j++)
-                {
-                  centroids[c][j] = (centroids[c][j] / counts[c]);
-                  // counter1++;
-                }
+              // #pragma acc loop vector
+              //   for (int j = 0; j < num_features; j++)
+              //   {
+              //     centroids[c][j] = (centroids[c][j] / counts[c]);
+              //     // counter1++;
+              //   }
+                centroids[c][0] /= counts[c];
+                centroids[c][1] /= counts[c];
             }
             // fflush(stdout);
             // #pragma acc parallel loop reduction(+:thresh_met_counter) present(centroids[0:k][0:num_features])
@@ -379,6 +383,7 @@ int main()
               }
             }
           
+            // #pragma acc parallel loop collapse(2)
             for (int i = 0; i < k; i++)
             {
               for (int j = 0; j < num_features; j++)
@@ -439,7 +444,7 @@ int main()
         }
 
         // final_centroids[loop] = centroids;
-        printf("Time taken for clustering acc : %.2fs\n", (double)(clock() - tStartb) / CLOCKS_PER_SEC);
+        printf("COUNT: %d \t\t Time taken for clustering acc : %.2fs\n", count, (double)(clock() - tStartb) / CLOCKS_PER_SEC);
         // printf("This is the current wcss %.9f \n", min_WCSS);
          printf("This is the loop %d \n", loop1);
         fflush(stdout);
