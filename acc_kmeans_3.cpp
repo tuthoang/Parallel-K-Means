@@ -47,8 +47,8 @@ int main()
   // srand(time(NULL));
   setlocale(LC_ALL, "en_US.UTF-8");
   // Synthetic data
-  int const k = 8;
-  int const num_samples = 6500;
+  int const k = 20;
+  int const num_samples = 3000;
   int const num_features = 2;
   int const iterations = 10000;
   double **x = new double *[num_samples];
@@ -60,8 +60,8 @@ int main()
       x[i][j] = 0;
   }
 
-  std::string filename = "synthetic_dataset.txt";
-  std::string ground_truth_filename = "synthetic_dataset_gt.txt";
+  std::string filename = "a1.txt";
+  std::string ground_truth_filename = "a1-ga-cb.txt";
 
   std::string line;
   std::ifstream myfile(filename);
@@ -288,15 +288,6 @@ int main()
             }
             // #pragma acc update device(centroids[0:k][0:num_features])
 
-            // Get number of points in each cluster.
-            // #pragma acc parallel loop copy(counts[0:k])
-            // for (int i = 0; i < num_samples; i++)
-            // {
-
-            // }
-
-            // #pragma acc update device(centroids[0:k][0:num_features])
-
 
             #pragma acc parallel loop copy(centroids[0:k][0:num_features], counts[0:k])
             for (int i = 0; i < num_samples; i++)
@@ -358,7 +349,7 @@ int main()
               for (int j = 0; j < num_features; j++)
               {
                 old_centroids[i][j] = centroids[i][j];
-                }
+              }
             }
             
             count++;
@@ -379,7 +370,7 @@ int main()
         #pragma acc loop reduction(+: wcss_cluster) collapse(2)
         for(int i = 0; i < num_samples; i++){
               for(int j = 0; j < num_features; j++){
-                wcss += (x[i][j] - centroids[(int)clusters[i]][j]) * (x[i][j] - centroids[(int)clusters[i]][j]);
+                wcss += ((x[i][j] - centroids[(int)clusters[i]][j]) * (x[i][j] - centroids[(int)clusters[i]][j]));
               }
           }
         wcss =  sqrt(wcss);
@@ -400,10 +391,11 @@ int main()
           }
 
         }
+        printf("This is the current wcss %.2f \n", wcss);
 
         // final_centroids[loop] = centroids;
         printf("COUNT: %d \t\t Time taken for clustering acc : %.2fs\n", count, (double)(clock() - tStartb) / CLOCKS_PER_SEC);
-        // printf("This is the current wcss %.9f \n", min_WCSS);
+        // printf("This is the current wcss %.2f \n", wcss);
          printf("This is the loop %d \n", loop1);
         fflush(stdout);
 
@@ -481,7 +473,7 @@ int main()
         << "'; Title='Ground Truth' \" plotCluster.gp";
 
   // PLOT GROUND TRUTH
-  // system(fmt1.str().c_str());
+  system(fmt1.str().c_str());
 }
 
 /**
