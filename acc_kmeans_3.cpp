@@ -47,8 +47,8 @@ int main()
   // srand(time(NULL));
   setlocale(LC_ALL, "en_US.UTF-8");
   // Synthetic data
-  int const k = 20;
-  int const num_samples = 3000;
+  int const k = 50;
+  int const num_samples = 7500;
   int const num_features = 2;
   int const iterations = 10000;
   double **x = new double *[num_samples];
@@ -60,8 +60,8 @@ int main()
       x[i][j] = 0;
   }
 
-  std::string filename = "a1.txt";
-  std::string ground_truth_filename = "a1-ga-cb.txt";
+  std::string filename = "a3.txt";
+  std::string ground_truth_filename = "a3-ga-cb.txt";
 
   std::string line;
   std::ifstream myfile(filename);
@@ -210,10 +210,6 @@ int main()
         counts[i] = 0;
       }
 
-      // Do some preprocessing
-      // counter = 0;
-
-
         // #pragma acc parallel loop
         for (int i = 0; i < k; i++)
         {
@@ -256,17 +252,13 @@ int main()
             double closest_dist;
             // #pragma acc loop independent
 
-            // #pragma acc loop gang
-            // #pragma acc parallel loop copyin(centroids[0:k][0:2])
             for (int i = 0; i < num_samples; i++)
             {
               closest_dist = INT_MAX;
-              // #pragma acc loop independent
               for (int c = 0; c < k; c++)
               {
                 //Calculate l2 distance from each cluster
-                //This is a data independet loop so I should be able to do a parallelization
-                // #pragma acc atomic update
+                //This is a data independent loop so I should be able to do a parallelization
                 distances[i][c] = calc_dist(x[i], centroids[c]);
                 if(distances[i][c] < closest_dist)
                 {
@@ -318,15 +310,14 @@ int main()
                 counter1 = (abs(counter1 + 39 + c * 82)) % num_samples; // Random counter
               }
             }
+
             #pragma acc parallel loop copy(centroids[0:k][0:2]) copyin(counts[0:k])
             for (int c = 0; c < k; c++)
             {
                 // Divide by number of data points in cluster
                 // This is the new centroid (average)
                 centroids[c][0] = centroids[c][0] / counts[c];
-
                 centroids[c][1] = centroids[c][1] / counts[c];
-              
             }
 
             #pragma acc parallel loop reduction(+:thresh_met_counter)
@@ -356,16 +347,10 @@ int main()
           
         }
 
-        // double t1 = (double)(clock() - tStart) / CLOCKS_PER_SEC;
-        // printf("Time taken for clustering serially : %.2fs\n", (double)(clock() - tStart) / CLOCKS_PER_SEC);
-
         
         //WITH IN SUM OF SQUARES
         double wcss = 0;
         double wcss_cluster = 0;
-
-        // for(int c = 0; c < k; c++){
-        //     wcss_cluster = 0;
 
         #pragma acc loop reduction(+: wcss_cluster) collapse(2)
         for(int i = 0; i < num_samples; i++){
@@ -373,7 +358,6 @@ int main()
                 wcss += ((x[i][j] - centroids[(int)clusters[i]][j]) * (x[i][j] - centroids[(int)clusters[i]][j]));
               }
           }
-        wcss =  sqrt(wcss);
        
         wcss =  wcss/num_samples;
 
@@ -463,7 +447,7 @@ int main()
   }
   // printf("asdasdsaasd\n");
   std::string ground_truth_labels_file = "ground_truth_centroids.txt";
-  labels = getLabels(x, ground_truth, num_samples, num_features, k);
+  int* labels = getLabels(x, ground_truth, num_samples, num_features, k);
   writeLabelsToFile(ground_truth_labels_file, x, labels, num_samples, num_features);
   // printf("2132132121asdasdsaasd\n");
 
