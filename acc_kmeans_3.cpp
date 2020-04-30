@@ -327,7 +327,7 @@ int main()
             // counts holds the number of data points currently in the cluster
             // counts = new int[k];
             // #pragma acc loop
-            // #pragma acc parallel loop vector
+            #pragma acc parallel loop vector
             for (int c = 0; c < k; c++){
               // #pragma acc atomic write
               counts[c] = 0;
@@ -338,61 +338,54 @@ int main()
             }
             // #pragma acc update device(centroids[0:k][0:num_features])
 
+            // Get number of points in each cluster.
+            #pragma acc parallel loop copy(counts[0:k])
             for (int i = 0; i < num_samples; i++)
             {
-              // #pragma acc atomic update
+              #pragma acc atomic update
               counts[(int)clusters[i]]++;
-
-              // printf("%d \n", (int)clusters[i]);
             }
 
-            // #pragma data copyin (counts[0:k])
+            // If no data points in any cluster, then reinitialize the centroid
             for(int c = 0; c < k; c++){
               if (counts[c] == 0)
               {
                 counts[c] = 1;
                 for (int j = 0; j < num_features; j++)
                 {
-                  centroids[c][j] = (random[counter1][j] + mins[j]) % maxes[j]; // If no data points in group, then reinitialize
-                  // printf("%d  Has no data points.  %f\n", c, centroids[c][j]);
-                  // counter1 = (abs(counter1 + 39 + c*82)) % num_samples;
+                  centroids[c][j] = (random[counter1][j] + mins[j]) % maxes[j]; 
                 }
                 counter1 = (abs(counter1 + 39 + c * 82)) % num_samples;
-                // counter1 = (counter1 + 51) % num_samples;
               }
-              // printf("%d  Has count:  %d\n", c, counts[c]);
             }
             // #pragma acc update device(centroids[0:k][0:num_features])
 
 
-            #pragma acc parallel loop copy(centroids[0:k][0:2]) copyin(counts[0:k])
+            #pragma acc parallel loop copy(centroids[0:k][0:num_features]) 
             for (int i = 0; i < num_samples; i++)
             {
               int c = clusters[i]; // label of data point i
 
               #pragma acc atomic update
-              centroids[c][0] +=( x[i][0]/ counts[c]);
+              centroids[c][0] += (x[i][0]);
 
               #pragma acc atomic update
-              centroids[c][1] += (x[i][1]/counts[c]);
-            // }
+              centroids[c][1] += (x[i][1]);
+            }
             // // #pragma acc update self(centroids[0:k][0:num_features])
             // // #pragma acc update device(centroids[0:k][0:num_features])
 
             // // #pragma acc parallel loop present(counts[0:k], random[0:num_samples][0:num_features], centroids[0:k][0:num_features]) 
 
-            // #pragma acc parallel loop copy(centroids[0:k][0:2])
-            // for (int c = 0; c < k; c++)
-            // {
+            #pragma acc parallel loop copy(centroids[0:k][0:2]) copyin(counts[0:k])
+            for (int c = 0; c < k; c++)
+            {
                 // Divide by number of data points in cluster
                 // This is the new centroid (average)
-                // #pragma acc atomic update
-                // centroids[c][0] = centroids[c][0] / counts[c];
+                centroids[c][0] = centroids[c][0] / counts[c];
 
-                // // #pragma acc atomic update
-                // centroids[c][1] = centroids[c][1] / counts[c];
+                centroids[c][1] = centroids[c][1] / counts[c];
 
-                // #pragma acc atomic
             }
             // #pragma acc update self(centroids[0:k][0:num_features])
             // #pragma acc update device(centroids[0:k][0:num_features])
