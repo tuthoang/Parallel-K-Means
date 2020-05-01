@@ -46,11 +46,40 @@ int main()
   srand(157); // seed 1
   // srand(time(NULL));
   setlocale(LC_ALL, "en_US.UTF-8");
-  // Synthetic data
-  int const k = 50;
-  int const num_samples = 7500;
-  int const num_features = 2;
+  std::cout<< "The 2-D dataset needs to be placed in the /datasets/ and must be SPACE delimited.\n";
+  std::cout<< "Type in the name of the dataset you want to use. i.e unbalance.txt\n";
+  std::string filename;
+  std::cin >> filename;
+  std::string ground_truth_filename = "";
+
+  int k;
+  int num_samples;
+  int num_features = 2;
   int const iterations = 10000;
+  if(filename == "unbalance.txt"){
+    k = 8;
+    num_samples = 6500;
+    ground_truth_filename = "unbalance-gt.txt";
+  }
+  else if (filename == "a2.txt"){
+    k = 35;
+    num_samples = 5250;
+    ground_truth_filename = "a2-ga-cb.txt";
+  }
+  else if (filename == "a3.txt"){
+    k = 50;
+    num_samples = 7500;
+    ground_truth_filename = "a3-ga-cb.txt";
+  } else{
+    std::cout << "Insert value for k: ";
+    std::cin >> k;
+    std::cout << "Insert number of samples in the dataset: ";
+    std::cin >> num_samples;
+  }
+
+
+  // Synthetic data
+
   double **x = new double *[num_samples];
 
   for (int i = 0; i < num_samples; i++)
@@ -60,11 +89,8 @@ int main()
       x[i][j] = 0;
   }
 
-  std::string filename = "a3.txt";
-  std::string ground_truth_filename = "a3-ga-cb.txt";
-
   std::string line;
-  std::ifstream myfile(filename);
+  std::ifstream myfile("datasets/"+filename);
   std::string delimiter = " ";
   int linenum = 0;
   if (myfile.is_open())
@@ -83,15 +109,6 @@ int main()
     }
   }
   myfile.close();
-  // **this is my issue here ^^^
-  // for (int i = 0; i < num_samples; i++)
-  // {
-  //   for (int j = 0; j < num_features; j++)
-  //   {
-  //     printf("%f ", x[i][j]);
-  //   }
-  //   printf("\n");
-  // }
 
   std::cout<<linenum << "   "<<num_samples<<std::endl;
   //All the neccessarry array declarations
@@ -388,50 +405,52 @@ int main()
       << "'; Title='K-Means'\" plotCluster.gp";
 
   // PLOT WITH GNUPLOT
-  // system(fmt.str().c_str());
+  system(fmt.str().c_str());
 
-  double **ground_truth = new double *[k];
-  std::ifstream myfile1(ground_truth_filename);
-  delimiter = " ";
-  linenum = 0;
-  if (myfile1.is_open())
-  {
-    while (getline(myfile1, line))
+  if(ground_truth_filename != ""){
+    double **ground_truth = new double *[k];
+    std::ifstream myfile1(ground_truth_filename);
+    delimiter = " ";
+    linenum = 0;
+    if (myfile1.is_open())
     {
-      std::vector<std::string> result;
-      std::istringstream iss(line);
-      for (std::string s; iss >> s;)
-        result.push_back(s);
-      ground_truth[linenum] = new double[num_features];
-      for (int i = 0; i < result.size(); i++)
+      while (getline(myfile1, line))
       {
-        ground_truth[linenum][i] = std::stod(result[i]);
+        std::vector<std::string> result;
+        std::istringstream iss(line);
+        for (std::string s; iss >> s;)
+          result.push_back(s);
+        ground_truth[linenum] = new double[num_features];
+        for (int i = 0; i < result.size(); i++)
+        {
+          ground_truth[linenum][i] = std::stod(result[i]);
+        }
+        linenum++;
       }
-      linenum++;
     }
-  }
-  myfile1.close();
-  printf("--------------------\n");
+    myfile1.close();
+    printf("--------------------\n");
 
-  for(int i =0 ; i<k; i++){
-    for(int j = 0; j < num_features; j++){
-      std::cout << ground_truth[i][j] << "  ";
+    for(int i =0 ; i<k; i++){
+      for(int j = 0; j < num_features; j++){
+        std::cout << ground_truth[i][j] << "  ";
+      }
+      std::cout << std::endl;
     }
-    std::cout << std::endl;
+    // printf("asdasdsaasd\n");
+    std::string ground_truth_labels_file = "ground_truth_centroids.txt";
+    labels = getLabels(x, ground_truth, num_samples, num_features, k);
+    writeLabelsToFile(ground_truth_labels_file, x, labels, num_samples, num_features);
+    // printf("2132132121asdasdsaasd\n");
+
+    std::stringstream fmt1;
+    fmt1 << "gnuplot -p -e \"k=" << k << "; data_labels= '" << ground_truth_labels_file 
+          << "'; centroids_file= '" << ground_truth_filename 
+          << "'; Title='Ground Truth' \" plotCluster.gp";
+
+    // PLOT GROUND TRUTH
+    system(fmt1.str().c_str());
   }
-  // printf("asdasdsaasd\n");
-  std::string ground_truth_labels_file = "ground_truth_centroids.txt";
-  labels = getLabels(x, ground_truth, num_samples, num_features, k);
-  writeLabelsToFile(ground_truth_labels_file, x, labels, num_samples, num_features);
-  // printf("2132132121asdasdsaasd\n");
-
-  std::stringstream fmt1;
-  fmt1 << "gnuplot -p -e \"k=" << k << "; data_labels= '" << ground_truth_labels_file 
-        << "'; centroids_file= '" << ground_truth_filename 
-        << "'; Title='Ground Truth' \" plotCluster.gp";
-
-  // PLOT GROUND TRUTH
-  system(fmt1.str().c_str());
 }
 
 /**
