@@ -349,10 +349,10 @@ int main()
           }
 
         }
-        printf("This is the current wcss %.2f \n", wcss);
+        // printf("This is the current wcss %.2f \n", wcss);
 
         // final_centroids[loop] = centroids;
-        printf("COUNT: %d \t\t Time taken for clustering acc : %.2fs\n", count, (double)(clock() - tStartb) / CLOCKS_PER_SEC);
+        // printf("COUNT: %d \t\t Time taken for clustering acc : %.2fs\n", count, (double)(clock() - tStartb) / CLOCKS_PER_SEC);
         // printf("This is the current wcss %.2f \n", wcss);
          printf("This is the loop %d \n", loop1);
         fflush(stdout);
@@ -367,15 +367,15 @@ int main()
   // printf("This is the loop %d \n", loop);
   // #pragma acc exit data copyout(min_centroids[0:k][0:num_features], clusters[0:num_samples])
 
-  printf("min centroids\n");
-  for(int i = 0; i < k ; i++){
-    for(int j = 0; j < num_features; j++){
-      // printf("000\n");
+  // printf("min centroids\n");
+  // for(int i = 0; i < k ; i++){
+  //   for(int j = 0; j < num_features; j++){
+  //     // printf("000\n");
 
-      printf("%f ", min_centroids[i][j]);
-    }
-    printf("\n");
-  }
+  //     printf("%f ", min_centroids[i][j]);
+  //   }
+  //   printf("\n");
+  // }
 
   std::string out = "acc_data_colors.txt";
   std::string centroids_file = "acc_centroids.txt";
