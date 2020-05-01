@@ -19,7 +19,7 @@ make
 Compile ACC code
 ```
 module load pgi gcc
-make -k -f makeACC"
+make -k -f makeACC
 ./acc_kmeans
 ```
 
@@ -32,7 +32,7 @@ Type in the name of the dataset you want to use. i.e unbalance.txt
 
 If you want to cluster a new dataset, the program will prompt you for inputs for k and the size of the dataset.
 ```
-Insert value for k: 20
+Insert value for k: 
 Insert number of samples in the dataset:
 ```
 
@@ -49,6 +49,6 @@ We recommend scp'ing __data_out.txt__ and __centroids_out.txt__ back to your hos
 gnuplot -p -e "k= YOUR_NUMBER_OF_CLUSTERS; data_labels= 'data_out.txt'; centroids_file= 'centroids_out.txt'; Title='K-Means" plotCluster.gp;
 ```
 
-![Data](/results/k8_data.png)
-![Data_GT](/results/k8_ground_truth.png)
-![Data_KMeans](/results/k8_kmeans.png)
+![Data](/results/k8/k8_data.png)
+![Data_GT](/results/k8/k8_ground_truth.png)
+![Data_KMeans](/results/k8/k8_kmeans.png)
