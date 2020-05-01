@@ -39,6 +39,7 @@ Insert number of samples in the dataset:
 The program will then run for 10,000 iterations and at the conclusion will output 2 text files:
 - data_out.txt
 - centroids_out.txt
+
 __data_out.txt__ contains the original dataset with a new column appended to it which is the label of the cluster the data point belongs to.
 __centroids_out.txt__ contains the centroid locations.
 
