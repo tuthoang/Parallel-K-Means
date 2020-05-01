@@ -47,7 +47,7 @@ We call gnuplot at the end of the program to plot the new centroids. However, if
 
 We recommend scp'ing __data_out.txt__ and __centroids_out.txt__ back to your host computer and running this command:
 ```
-gnuplot -p -e "k= YOUR_NUMBER_OF_CLUSTERS; data_labels= 'data_out.txt'; centroids_file= 'centroids_out.txt'; Title='K-Means" plotCluster.gp;
+gnuplot -p -e "k= YOUR_NUMBER_OF_CLUSTERS; data_labels= 'data_out.txt'; centroids_file= 'centroids_out.txt'; Title='K-Means'" plotCluster.gp;
 ```
 
 ![Data](/results/k8/k8_data.png)
