@@ -59,17 +59,17 @@ int main()
   if(filename == "unbalance.txt"){
     k = 8;
     num_samples = 6500;
-    ground_truth_filename = "unbalance-gt.txt";
+    ground_truth_filename = "datasets/unbalance-gt.txt";
   }
   else if (filename == "a2.txt"){
     k = 35;
     num_samples = 5250;
-    ground_truth_filename = "a2-ga-cb.txt";
+    ground_truth_filename = "datasets/a2-ga-cb.txt";
   }
   else if (filename == "a3.txt"){
     k = 50;
     num_samples = 7500;
-    ground_truth_filename = "a3-ga-cb.txt";
+    ground_truth_filename = "datasets/a3-ga-cb.txt";
   } else{
     std::cout << "Insert value for k: ";
     std::cin >> k;
