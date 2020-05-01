@@ -260,7 +260,7 @@ int main()
             }
             
             // counts holds the number of data points currently in the cluster
-            #pragma acc parallel loop vector
+            #pragma acc parallel loop copy(centroids[0:k][0:num_features], counts[0:k])
             for (int c = 0; c < k; c++){
               // #pragma acc atomic write
               counts[c] = 0;
