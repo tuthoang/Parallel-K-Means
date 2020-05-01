@@ -394,8 +394,8 @@ int main()
   //   printf("\n");
   // }
 
-  std::string out = "acc_data_colors.txt";
-  std::string centroids_file = "acc_centroids.txt";
+  std::string out = "data_out.txt";
+  std::string centroids_file = "centroids_out.txt";
   writeCentroidsToFile(centroids_file, min_centroids, k, num_features);
   int *labels = getLabels(x, min_centroids, num_samples, num_features, k);
   writeLabelsToFile(out, x, labels, num_samples, num_features);
