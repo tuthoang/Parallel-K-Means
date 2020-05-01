@@ -1,7 +1,7 @@
 .SUFFIXES:
 .SUFFIXES: .o .cpp
 
-TARGET1 = serial-kmeans
+TARGET1 = kmeans
 C_OBJS1 = serial-kmeans.o
 
 ALL_SOURCES = Makefile $(C_SOURCES) $(MY_INCLUDES)

@@ -1,3 +1,4 @@
+#include <accelmath.h>
 #include <limits.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -7,7 +8,7 @@
 #include <sstream>
 #include <vector>
 #include <iostream>
-#include <time.h>
+
 //#include <curand.h>
 
 using namespace std;
@@ -32,12 +33,12 @@ enum Color { red,
 int main()
 {
   clock_t tStart = clock();
-  srand(50); // seed 1
+  srand(2); // seed 1
   setlocale(LC_ALL, "en_US.UTF-8");
   // Synthetic data
   int k = 8;              // Number of clusters
-  int num_features = 2;   // x1, x2
-  int num_samples = 6400; // total number of data points
+  int num_features = 10;   // x1, x2
+  int num_samples = 6500; // total number of data points
   double **x = new double *[num_samples];
 
   for (int i = 0; i < num_samples; i++)
@@ -60,68 +61,60 @@ int main()
       for (int i = 0; i < result.size(); i++)
       {
         stringstream num(result[i]);
-        double x_temp;
+        double x_temp = 0;
         num >> x_temp;
         x[linenum][i] = x_temp;
       }
       linenum++;
     }
-    
   }
   myfile.close();
 
   for (int i = 0; i < num_samples; i++)
     for (int j = 2; j < num_features; j++)
     {
-      x[i][j] = 0.0;
+      x[i][j] = 1.0;
     }
   // Do some preprocessing
   // Initialize clusters randomly, but only within the min-max range
-  double* mins = new double[num_features];
-  double* maxes = new double[num_features];
+  double mins[num_features];
+  double maxes[num_features];
 
   for (int j = 0; j < num_features; j++)
   {
-    mins[j] = INT_MAX;
-    maxes[j] = 0.0;
+    mins[0] = 0.0;
+    maxes[0] = 0.0;
   }
 
   // Find min/max of each feature
   for (int i = 0; i < num_samples; i++)
   {
-    for (int j = 0; j < 2; j++)
+    for (int j = 0; j < num_features; j++)
     {
-      if (x[i][j] < mins[j]){
+      if (x[i][j] < mins[j])
         mins[j] = x[i][j];
-      }
       if (x[i][j] > maxes[j])
         maxes[j] = x[i][j];
     }
   }
-
-  int **random = new int*[num_samples];
-  for (int i = 0; i < num_samples; i++)
-  {
-    random[i] = new int[num_features];
-    cout<<"hello"<<endl;
-    for(int j = 0; j <2; j++){
-      cout<<"hello2"<<endl;
-      random[i][j] = ((int)mins[j] +
-                rand()) % (int)maxes[j];
-    }
-  }
-  cout<<"ok"<<endl;
-  double **initial_centroids = new double*[k];
+  
+  double **initial_centroids = new double *[k];
   for (int i = 0; i < k; i++)
   {
     initial_centroids[i] = new double[num_features];
-    for (int j = 0; j < 2; j++)
+    for (int j = 0; j < num_features; j++)
     {
-       initial_centroids[i][j] = ((int)mins[j] +
-                                 rand())%(int)maxes[j];
+      if(j < 2){
+        initial_centroids[i][j] = (mins[j] +
+                                        rand()) % (int)maxes[j];
+      }
+      else{
+        initial_centroids[i][j] = 0;
+      }
+       
       }
   }
-   
+  
   printf("Initial Centroids\n");
   for (int i = 0; i < k; i++)
   {
@@ -132,7 +125,15 @@ int main()
     }
     printf(")\n");
   }
- 
+
+  int random[num_samples][num_features];
+  for (int i = 0; i < num_samples; i++)
+  {
+    for(int j = 0; j <num_features; j++)
+      random[i][j] = mins[j] +
+                rand() % (int)maxes[j];
+  }
+
   // double **final_centroid = kmeans(x, initial_centroids, num_samples, num_features, k);
   double **distances = new double *[num_samples];
   for (int i = 0; i < num_samples; i++)
@@ -167,21 +168,28 @@ int main()
 
   //#pragma acc data create(clusters[0:num_samples]) copy(centroids [0:k] [0:num_features]) copyin(x[0:num_samples][0:num_features])
   double thresh = 1;
-  int iter = 0;
   //#pragma acc routine seq
-  while(thresh >= 0.03 || iter < 100)
+  while(thresh >= 0.1)
   {
+    thresh = 0;
     int* clusters_old = new int[num_samples];
     for(int i = 0; i < num_samples; i++){
       clusters_old[i] = clusters[i];
     }
+    #pragma acc loop independent
+    for (int i = 0; i < num_samples; i++)
+    {
+      for (int j = 0; j < k; j++){
+        distances[i][j] = 0.0;
+      }
+    }
+    double closest_dist;
     //Loop through each sample
     //Loop through cluster for the sample and find closest centroid
-    double closest_dist;
     for (int i = 0; i < num_samples; i++)
     {
       closest_dist = INT_MAX;
-      //#pragma acc loop independent
+      #pragma acc loop independent
       for (int c = 0; c < k; c++)
       {
         //Calculate l2 distance from each cluster
@@ -192,7 +200,7 @@ int main()
         }
         // distances[i][c] = sqrt(distances[i][c]);
       
-      //closest_dist = distances[i][0];
+      closest_dist = distances[i][0];
       if (distances[i][c] < closest_dist)
       {
         //cout<<"Hello there"<<endl;
@@ -203,47 +211,6 @@ int main()
       //cout<<"went through a loop fine"<<endl;
     }
     }
- 
-    // counts holds the number of data points currently in the cluster
-    int *counts = new int[k];
-    for (int c = 0; c < k; c++)
-    {
-      // new_centroids[c] = new double[num_features];
-      counts[c] = 0.0;
-
-      //#pragma acc loop independent
-      for (int i = 0; i < num_samples; i++)
-      {
-        if (clusters[i] == c)
-        {
-          counts[c] += 1;
-          // #pragma acc parallel loop
-          for (int j = 0; j < 2; j++)
-          {
-            centroids[c][j] += x[i][j];
-          }
-        }
-      }
-    }
-    //#pragma acc loop independent 
-    for (int c = 0; c < k; c++)
-    {
-      // Divide by number of data points in cluster
-      // This is the new centroid (average)
-      rand_counter = (rand_counter * 7 + 31) % num_samples;
-      for (int j = 0; j < 2; j++)
-      {
-        if (counts[c] == 0){
-          // cout<<"hello"<<endl;
-          centroids[c][j] = ((int)mins[j] + rand()) % (int)maxes[j]; // If no data points in group, then reinitialize
-        }
-        else
-          centroids[c][j] = centroids[c][j] / counts[c];
-      } 
-    }
-
-
-    thresh = 0;
     double temp =0;
     for(int i =0; i < num_samples; i++){
       if(clusters_old[i] - clusters[i] != 0){
@@ -252,9 +219,44 @@ int main()
     }
     //cout<<"This is temp "<< temp << endl;
     thresh = 1.0*temp/num_samples;
-    iter++;
-    //writeLabelsToFile(x, clusters, num_samples, num_features);
-    cout <<"This is the iter "<<iter<<" this is the number of points that changed centroids "<< thresh << endl;
+
+    // counts holds the number of data points currently in the cluster
+    int *counts = new int[k];
+    for (int c = 0; c < k; c++)
+    {
+      // new_centroids[c] = new double[num_features];
+      counts[c] = 0.0;
+
+      #pragma acc loop independent
+      for (int i = 0; i < num_samples; i++)
+      {
+        if (clusters[i] == c)
+        {
+          counts[c] += 1;
+          // #pragma acc parallel loop
+          for (int j = 0; j < num_features; j++)
+          {
+            centroids[c][j] += x[i][j];
+          }
+        }
+      }
+    }
+    #pragma acc loop independent
+    for (int c = 0; c < k; c++)
+    {
+      // Divide by number of data points in cluster
+      // This is the new centroid (average)
+      for (int j = 0; j < num_features; j++)
+      {
+        if (counts[c] == 0)
+          centroids[c][j] = random[rand_counter][j] % 500000; // If no data points in group, then reinitialize
+        else
+          centroids[c][j] = centroids[c][j] / counts[c];
+      }
+      rand_counter = (rand_counter * 7 + 31) % num_samples;
+    }
+    writeLabelsToFile(x, clusters, num_samples, num_features);
+    cout << thresh << endl;
   }
   
   writeCentroidsToFile(centroids, k, num_features);
